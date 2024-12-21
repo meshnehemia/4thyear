@@ -1,0 +1,54 @@
+body {
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  #video {
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 300px; /* Adjust the max width of the video */
+    height: auto;
+    margin-bottom: 10px;
+  }
+  
+  #capture {
+    display: block;
+    margin: 10px auto;
+  }
+  
+  .form-text {
+    font-size: 12px;
+    color: #6c757d;
+  }
+  .form-container {
+    padding: 30px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .camera-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  /* Padding for mobile views */
+  @media (max-width: 576px) {
+    .form-container {
+      padding: 20px;
+    }
+  }

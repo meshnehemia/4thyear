@@ -1,0 +1,34 @@
+{% include 'head.html' %}
+<body>
+    <!-- Topbar Start -->
+{% include 'topbar.html' %}
+
+    <!-- Navbar Start -->
+{% include 'navbar.html' %}
+    <!-- Shop Start -->
+    <div class="container-fluid">
+        <div class="row px-xl-5">
+            <!-- Shop Sidebar Start -->
+            {% include 'filters.html'%}
+            
+            <!-- Shop Sidebar End -->
+
+            <!-- shop products start -->
+             {% include 'shopproduct.html' %}
+            
+            <!-- Shop Product End -->
+        </div>
+    </div>
+    <!-- Shop End -->
+       <!-- Footer Start -->
+       {% include 'footer.html' %}
+
+
+       <!-- Back to Top -->
+       <a href="#" class="btn btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
+       
+       <!-- JavaScript Libraries -->
+       {% include 'scriptsfooter.html' %}
+   </body>
+   
+   </html>

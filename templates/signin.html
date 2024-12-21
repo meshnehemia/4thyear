@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligent Management System</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static',filename='css/login.css') }}" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container login-container">
+    <a href="" class="text-decoration-none" style="margin-top: -60px; padding-bottom:20px;">
+        <span class="text-uppercase text-primary bg-dark px-2 fs-2">Inteligent</span>
+        <span class="text-uppercase text-dark bg-warning px-2 fs-2">Supermarket</span>
+    </a>
+
+    <!-- Camera Stream -->
+    <div>
+      <video id="video" autoplay></video>
+      <button class="btn btn-primary mb-3" id="capture">Capture Image</button>
+    </div>
+
+    <!-- Login Form -->
+    <form>
+      <div class="mb-3">
+        <label for="email" class="form-label">Username or Email</label>
+        <input type="email" class="form-control" id="email" placeholder="Enter your email or username">
+      </div>
+
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" placeholder="Enter your password">
+      </div>
+
+      <button type="submit" class="btn btn-login btn-primary">login </button>
+    </form>
+
+    <!-- Alternative Sign-Up Option -->
+    <div class="alternative">
+      <p>or</p>
+      <a href="{{url_for('signup')}}" class="signup-link">Sign Up</a>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="mt-4 text-center">
+      <a href="#" class="footer-link">Forgot Password?</a>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Camera Access Script -->
+  <script src="{{url_for('static', filename='js/login.js')}}"></script>
+</body>
+</html>

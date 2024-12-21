@@ -1,0 +1,37 @@
+{% include 'head.html' %}
+<body>
+    <!-- Topbar Start -->
+    {% include 'topbar.html' %}
+
+    <!-- Navbar Start -->
+    {% include 'navbar.html' %}
+
+
+    <!-- Breadcrumb Start -->
+    <div class="container-fluid">
+        <div class="row px-xl-5">
+            <div class="col-12">
+                <nav class="breadcrumb bg-light mb-30">
+                    <a class="breadcrumb-item text-dark" href="#">Intellingent </a>
+                    <a class="breadcrumb-item text-dark" href="#">Supermarket </a>
+                    <span class="breadcrumb-item active">shopping experience </span>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <!-- Cart Start -->
+    {% include 'cartitems.html' %}
+
+    <!-- Footer Start -->
+    {% include 'footer.html' %}
+
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
+
+
+    <!-- JavaScript Libraries -->
+    {% include 'scriptsfooter.html' %}
+</body>
+
+</html>
