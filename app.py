@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, send_file
+import io
 import mysql.connector
 from mysql.connector import errorcode
 
@@ -46,24 +47,24 @@ def show_categories():
 # Route to serve category cover images
 @app.route('/category_cover/<int:category_id>')
 def category_cover(category_id):
-    print("testinh")
-    return "testing"
-    conn = connect()
+    conn = connect()  # Your DB connection function
     if conn is None:
-        return "Database connection failed", 500
+        return "Could not connect to database", 500
 
     try:
         cursor = conn.cursor()
-        query = '''
-            SELECT category_cover FROM d_categories WHERE category_id = %s
-        '''
+        query = '''SELECT category_cover FROM d_categories WHERE category_id = %s'''
         cursor.execute(query, (category_id,))
         result = cursor.fetchone()
-        if result:
-            return "my name"
-            return send_file(BytesIO(result[0]), mimetype='image/jpeg')  # Adjust mimetype if necessary
+
+        if result and result[0]:
+            # Assuming result[0] is a BLOB field containing the image
+            image_data = result[0]
+            # Return image as a response
+            return send_file(io.BytesIO(image_data), mimetype='image/jpeg')
         else:
-            return "Image not found", 404
+            return "No image found", 404
+
     finally:
         conn.close()
 
