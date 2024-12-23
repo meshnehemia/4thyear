@@ -117,6 +117,30 @@ def productsphoto(product_id):
 def show_topadvertised():
     return {'advertised': topadvertised()}
 
+
+
+# featured products 
+def featured():
+    conn = connect()
+    if conn is None:
+        return "could not connect to database", 500
+    try:
+        cursor = conn.cursor()
+        query = '''SELECT p.product_name, p.description, p.price, f.product_id,
+           f.new_price, f.feature_description FROM products p 
+           JOIN featured f ON p.product_id = f.product_id'''
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
+    finally:
+        conn.close()
+
+@app.context_processor
+def feature():
+    return {'featured': featured()}
+
+
+
 @app.route('/')
 def home():
     return render_template('index.html')

@@ -1,24 +1,21 @@
 <div class="container-fluid pt-5 pb-3">
     <div class="row px-xl-5">
+        {% for name, description,price, id, new_price , tp_offer in advertised %}
+        {% if loop.index - 6 >= 0  and loop.index - 7 <= 0%}
         <div class="col-md-6">
             <div class="product-offer mb-30" style="height: 300px;">
-                <img class="img-fluid" src="img/offer-1.jpg" alt="">
+                <img class="img-fluid" src="{{ url_for('productsphoto', product_id=id) }}" alt="">
                 <div class="offer-text">
-                    <h6 class="text-white text-uppercase">Save 20%</h6>
-                    <h3 class="text-white mb-3">Special Offer</h3>
+                    <h1 class="display-5 text-white mb-3 animate__animated animate__fadeInDown">{{ name }}</h1>
+                    <p class="mx-md-5 px-5 animate__animated animate__bounceIn">{{ description}}</p>
+                    <h6 class="text-white text-uppercase">Save {{(((price - new_price) / price) * 100 ) | int }}%</h6>
+                    <h3 class="text-white mb-3">{{ tp_offer }}</h3>
+                    <h6><span><del> ksh {{ price }}</del></span> <span>now  ksh {{ new_price }}</span></h6>
                     <a href="" class="btn btn-primary">Shop Now</a>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="product-offer mb-30" style="height: 300px;">
-                <img class="img-fluid" src="img/offer-2.jpg" alt="">
-                <div class="offer-text">
-                    <h6 class="text-white text-uppercase">Save 20%</h6>
-                    <h3 class="text-white mb-3">Special Offer</h3>
-                    <a href="" class="btn btn-primary">Shop Now</a>
-                </div>
-            </div>
-        </div>
+        {% endif %}
+        {% endfor %}
     </div>
 </div>
