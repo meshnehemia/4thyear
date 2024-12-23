@@ -51,6 +51,29 @@ try:
         '''
     cursor.execute(create_table_query)
     print("Table created successfully.")
+
+    create_table='''CREATE TABLE IF NOT EXISTS Discounts (
+    product_id INT,                             
+    new_price DECIMAL(10, 2) NOT NULL,         
+    type_of_offer VARCHAR(255) NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(product_id)  ON DELETE CASCADE 
+        ON UPDATE CASCADE
+    );'''
+    cursor.execute(create_table)
+    print("Table created successfully.")
+
+
+    feature = '''CREATE TABLE  IF NOT EXISTS featured(
+    product_id INT,
+    new_price DECIMAL(10, 2),
+    feature_description VARCHAR(255),
+    FOREIGN KEY (product_id)
+        REFERENCES products (product_id)
+        ON DELETE CASCADE
+    );'''
+    cursor.execute(feature)
+    print("Table created successfully.")
+
     
     
 except mysql.connector.Error as err:

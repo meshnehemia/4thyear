@@ -4,7 +4,8 @@ import mysql.connector
 from mysql.connector import errorcode
 
 app = Flask(__name__)
-
+#categories fetch 
+#connect to database
 def connect():
     try:
         conn = mysql.connector.connect(
@@ -44,6 +45,8 @@ def categories():
 def show_categories():
     return {'categories': categories()}
 
+
+#convert blob to image 
 # Route to serve category cover images
 @app.route('/category_cover/<int:category_id>')
 def category_cover(category_id):
@@ -67,6 +70,52 @@ def category_cover(category_id):
 
     finally:
         conn.close()
+
+
+#top advertisement section starts 
+def topadvertised():
+    conn = connect()
+    if conn is None:
+        return "could not connect to database", 500
+    try:
+        cursor = conn.cursor()
+        query = '''SELECT p.product_name, p.description, p.price, d.product_id,
+           d.new_price, d.type_of_offer FROM products p 
+           JOIN Discounts d ON p.product_id = d.product_id'''
+        cursor.execute(query)
+        result = cursor.fetchall()
+        return result
+    finally:
+        conn.close()
+
+# Route to serve category cover images
+@app.route('/productsphoto/<int:product_id>')
+def productsphoto(product_id):
+    conn = connect()  # Your DB connection function
+    if conn is None:
+        return "Could not connect to database", 500
+
+    try:
+        cursor = conn.cursor()
+        query = '''SELECT cover_photo FROM products WHERE product_id = %s'''
+        cursor.execute(query, (product_id,))
+        result = cursor.fetchone()
+
+        if result and result[0]:
+            # Assuming result[0] is a BLOB field containing the image
+            image_data = result[0]
+            # Return image as a response
+            return send_file(io.BytesIO(image_data), mimetype='image/jpeg')
+        else:
+            return "No image found", 404
+
+    finally:
+        conn.close()
+
+
+@app.context_processor
+def show_topadvertised():
+    return {'advertised': topadvertised()}
 
 @app.route('/')
 def home():

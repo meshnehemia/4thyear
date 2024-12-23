@@ -11,41 +11,64 @@ conn = mysql.connector.connect(
 cursor = conn.cursor()
 
 # List of product-category associations
-product_category_data = [
-   (1, 1),  (2, 1),  (3, 2),  (4, 3),
-(5, 4),  (6, 5),  (7, 2),  (8, 1),
-(9, 3),  (10, 4), (11, 5), (12, 2),
-(13, 1), (14, 3), (15, 4), (16, 1),
-(17, 2), (18, 5), (19, 3), (20, 4),
-(21, 1), (22, 3), (23, 2), (24, 4),
-(25, 5), (26, 1), (27, 3), (28, 4),
-(29, 2), (30, 5), (31, 3), (32, 1),
-(33, 2), (34, 4), (35, 5), (36, 3),
-(37, 1), (38, 4), (39, 2), (40, 5),
-(41, 3), (42, 1), (43, 2), (44, 4),
-(45, 5), (46, 3), (47, 1), (48, 2),
-(49, 3), (50, 4), (51, 5), (52, 1),
-(53, 2), (54, 4), (55, 3), (56, 1),
-(57, 4), (58, 5), (59, 2), (60, 3),
-(61, 1), (62, 4), (63, 5), (64, 2),
-(65, 3), (66, 1), (67, 4), (68, 5),
-(69, 2), (70, 3), (71, 1), (72, 4),
-(73, 5), (74, 2), (75, 3), (76, 1),
-(77, 4), (78, 5), (79, 2), (80, 3),
-(81, 1), (82, 4), (83, 5), (84, 2),
-(85, 3), (86, 1), (87, 4), (88, 5),
-(89, 2), (90, 3), (91, 1), (92, 4),
-(93, 5), (94, 2), (95, 3), (96, 1),
-(97, 4), (98, 5), (99, 2), (100, 3),
-(101, 1), (102, 4), (103, 5), (104, 2),
-(105, 3), (106, 1), (107, 4), (108, 5),
-(109, 2), (110, 3), (111, 1), (112, 4),
-(113, 5)
+cursor.execute("SET @min = 1")
+cursor.execute("SET @max = 113")
 
+product_category_data = [
+    (1, 199.99, 'Feature 1 Description'),
+    (2, 249.99, 'Feature 2 Description'),
+    (3, 189.99, 'Feature 3 Description'),
+    (4, 229.99, 'Feature 4 Description'),
+    (5, 299.99, 'Feature 5 Description'),
+    (6, 159.99, 'Feature 6 Description'),
+    (7, 299.99, 'Feature 7 Description'),
+    (8, 199.99, 'Feature 8 Description'),
+    (9, 229.99, 'Feature 9 Description'),
+    (10, 179.99, 'Feature 10 Description'),
+    (11, 269.99, 'Feature 11 Description'),
+    (12, 249.99, 'Feature 12 Description'),
+    (13, 199.99, 'Feature 13 Description'),
+    (14, 299.99, 'Feature 14 Description'),
+    (15, 249.99, 'Feature 15 Description'),
+    (16, 189.99, 'Feature 16 Description'),
+    (17, 179.99, 'Feature 17 Description'),
+    (18, 249.99, 'Feature 18 Description'),
+    (19, 269.99, 'Feature 19 Description'),
+    (20, 239.99, 'Feature 20 Description'),
+    (21, 219.99, 'Feature 21 Description'),
+    (22, 249.99, 'Feature 22 Description'),
+    (23, 199.99, 'Feature 23 Description'),
+    (24, 299.99, 'Feature 24 Description'),
+    (25, 229.99, 'Feature 25 Description'),
+    (26, 219.99, 'Feature 26 Description'),
+    (27, 279.99, 'Feature 27 Description'),
+    (28, 259.99, 'Feature 28 Description'),
+    (29, 299.99, 'Feature 29 Description'),
+    (30, 249.99, 'Feature 30 Description'),
+    (31, 219.99, 'Feature 31 Description'),
+    (32, 179.99, 'Feature 32 Description'),
+    (33, 269.99, 'Feature 33 Description'),
+    (34, 239.99, 'Feature 34 Description'),
+    (35, 219.99, 'Feature 35 Description'),
+    (36, 259.99, 'Feature 36 Description'),
+    (37, 199.99, 'Feature 37 Description'),
+    (38, 249.99, 'Feature 38 Description'),
+    (39, 279.99, 'Feature 39 Description'),
+    (40, 299.99, 'Feature 40 Description'),
+    (41, 269.99, 'Feature 41 Description'),
+    (42, 249.99, 'Feature 42 Description'),
+    (43, 229.99, 'Feature 43 Description'),
+    (44, 219.99, 'Feature 44 Description'),
+    (45, 239.99, 'Feature 45 Description'),
+    (46, 199.99, 'Feature 46 Description'),
+    (47, 249.99, 'Feature 47 Description'),
+    (48, 229.99, 'Feature 48 Description'),
+    (49, 249.99, 'Feature 49 Description'),
+    (50, 269.99, 'Feature 50 Description')
 ]
 
 # SQL query to insert data into 'product_category' table
-insert_query = "INSERT INTO categories (product_id, category_id) VALUES (%s, %s)"
+insert_query = "INSERT INTO featured (product_id, new_price, feature_description) VALUES (%s, %s, %s)"
 
 # Execute the insert query for each row in the product_category_data list
 cursor.executemany(insert_query, product_category_data)
