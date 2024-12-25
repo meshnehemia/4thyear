@@ -1,4 +1,5 @@
-from flask import Flask, render_template, send_file
+from flask import Flask, render_template, send_file , Response
+from facedetection import gen_frames
 import io
 import mysql.connector
 from mysql.connector import errorcode
@@ -172,6 +173,10 @@ def login():
 @app.route('/signup')
 def signup():
     return render_template('signup.html')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -81,7 +81,7 @@ body {
 
   /* Styles for Camera */
   #video {
-    width: 100%;
+    width: 40%;
     border-radius: 10px;
     height: 100px;
     margin-bottom: -40px;

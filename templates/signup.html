@@ -27,7 +27,7 @@
               <div class="mb-3">
                 <label class="form-label">Face Capture</label>
                 <div class="camera-container">
-                  <video id="video" autoplay></video>
+                  <img id="video" src="{{ url_for('video_feed') }}" alt="Real-Time Video Feed" >
                   <button type="button" class="btn btn-primary mt-2" id="capture">Capture Image</button>
                   <canvas id="canvas" style="display: none;"></canvas>
                 </div>

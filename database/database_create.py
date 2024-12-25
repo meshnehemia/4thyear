@@ -27,6 +27,17 @@ try:
     cursor.execute(create_table_query)
     print("Table 'products' created successfully.")
 
+
+    create_table_query = '''
+        CREATE TABLE IF NOT EXISTS d_categories (
+            category_id INT AUTO_INCREMENT PRIMARY KEY,
+            category_name VARCHAR(255) NOT NULL,
+            category_cover BLOB 
+        );
+        '''
+    cursor.execute(create_table_query)
+    print("Table created successfully.")
+
     create_categories_table_query = """
     CREATE TABLE IF NOT EXISTS categories (
     product_id INT,
@@ -42,15 +53,6 @@ try:
     cursor.execute(create_categories_table_query)
     print("Tables 'products' and 'categories' created successfully.")
 
-    create_table_query = '''
-        CREATE TABLE IF NOT EXISTS d_categories (
-            category_id INT AUTO_INCREMENT PRIMARY KEY,
-            category_name VARCHAR(255) NOT NULL,
-            category_cover BLOB 
-        );
-        '''
-    cursor.execute(create_table_query)
-    print("Table created successfully.")
 
     create_table='''CREATE TABLE IF NOT EXISTS Discounts (
     product_id INT,                             
