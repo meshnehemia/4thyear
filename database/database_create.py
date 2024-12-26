@@ -13,6 +13,20 @@ try:
     cursor = conn.cursor()
 
     # SQL query to create the 'products' table
+    users = """CREATE TABLE IF NOT EXISTS users (
+        user_id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        phone_number VARCHAR(15),
+        user_name VARCHAR(50) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        full_name VARCHAR(255) NOT NULL,
+        face_id BLOB NOT NULL  -- Store image as BLOB
+    );"""
+
+    cursor.execute(users)
+    print("Table 'users' created successfully.")
+
+
     create_table_query = """
     CREATE TABLE IF NOT EXISTS products (
         product_id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,16 +1,24 @@
-from flask import Flask, render_template, send_file, Response, jsonify, request
+from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for
 from facedetection import gen_frames,detect_face
 from datetime import datetime
 import io
 import base64
 import numpy as np
 import cv2
+import hashlib
 import mysql.connector
 from database import connect
 from mysql.connector import errorcode
+from flask_sqlalchemy import SQLAlchemy
+import pymysql
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 app = Flask(__name__)
-# Function to fetch categories and their appearance counts
+  # needed for flash messages
 
 def categories():
     conn = connect()
@@ -164,8 +172,57 @@ def login():
 
 @app.route('/signup')
 def signup():
-    return render_template('signup.html')
+    return render_template('signup.html') 
+ # Render the registration form
+@app.route('/register', methods=['POST'])
+def register():
+        try:
+            data = request.get_json()
 
+        # Extract form data
+            full_name = data.get('full_name')
+            phone_number = data.get('phone_number')
+            email = data.get('email')
+            username = data.get('username')
+            password = data.get('password')
+            # Hash password
+
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+            # Get the captured face image (BLOB)
+            
+            face_image = data.get('captured_image_data')  # This will be the face captured by the user
+        
+            face_data = None
+            if face_image:
+                # Remove base64 header (data:image/jpeg;base64,)
+                face_image_base64 = face_image.split(',')[1]  # Get the base64 part after the comma
+                # Decode the base64 string to binary data
+                face_data = base64.b64decode(face_image_base64)
+
+
+            # Establish MySQL connection using pymysql
+            try:
+                connection = connect()
+                with connection.cursor() as cursor:
+                    # SQL insert statement
+                    insert_query = """
+                        INSERT INTO users (email, phone_number, user_name, password, full_name, face_id)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """
+                    # Execute the insert query with the data
+                    cursor.execute(insert_query, (email, phone_number, username, hashed_password, full_name, face_data))
+                    # Commit the changes to the database
+                    connection.commit()
+                return jsonify({'message': 'saved sucessfully'})
+            except pymysql.MySQLError as e:
+                print(f"Error: {e}")
+                return jsonify({'message': 'f"Error: {e}"'})
+            finally:
+                if connection:
+                    connection.close()
+        except Exception as e:
+            return jsonify({'message': f'Error: {str(e)}'}), 400
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -190,11 +247,9 @@ def capture_image():
         # Save the captured image to a file
         cv2.imwrite(image_filename, img)
 
-        # Process the image (for example, perform face detection)
         if detect_face(img):
             return jsonify({'message': 'face detected continue to register','image': image_filename})
 
-        # Respond with a success message if face is detected
         return jsonify({'message': 'no face detected', 'image': image_filename}), 400
 
     except Exception as e:
