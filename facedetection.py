@@ -23,3 +23,13 @@ def gen_frames():
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+
+def detect_face(img):
+    try:
+        detected_faces = DeepFace.extract_faces(img, enforce_detection=True)
+        if detected_faces is not None:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return False

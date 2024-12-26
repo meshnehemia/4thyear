@@ -1,25 +1,17 @@
-from flask import Flask, render_template, send_file , Response
-from facedetection import gen_frames
+from flask import Flask, render_template, send_file, Response, jsonify, request
+from facedetection import gen_frames,detect_face
+from datetime import datetime
 import io
+import base64
+import numpy as np
+import cv2
 import mysql.connector
+from database import connect
 from mysql.connector import errorcode
 
 app = Flask(__name__)
-#categories fetch 
-#connect to database
-def connect():
-    try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",  # e.g., 'localhost' or '127.0.0.1'
-            user="root",  # your MySQL username
-            password="",  # your MySQL password
-            database="supermarket"  # your database name
-        )
-        return conn
-    except mysql.connector.Error as err:
-        return None
-
 # Function to fetch categories and their appearance counts
+
 def categories():
     conn = connect()
     if conn is None:
@@ -177,6 +169,37 @@ def signup():
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/capture_image', methods=['POST'])
+def capture_image():
+    try:
+        # Get the image from the POST request
+        data = request.get_json()
+        image_data = data['image']
+
+        # Convert the base64 string to an image
+        image_data = image_data.split(",")[1]  # Remove 'data:image/jpeg;base64,' part
+        image_bytes = base64.b64decode(image_data)
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        # Create a unique filename for each captured image
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        image_filename = f'captured_image_{timestamp}.jpg'
+
+        # Save the captured image to a file
+        cv2.imwrite(image_filename, img)
+
+        # Process the image (for example, perform face detection)
+        if detect_face(img):
+            return jsonify({'message': 'face detected continue to register','image': image_filename})
+
+        # Respond with a success message if face is detected
+        return jsonify({'message': 'no face detected', 'image': image_filename}), 400
+
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True)
