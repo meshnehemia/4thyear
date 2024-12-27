@@ -18,16 +18,18 @@
 
 
     <!-- Camera Stream -->
-    <div>
+    <div class="vdisp">
       <img id="video" src="{{ url_for('video_feed') }}" alt="Real-Time Video Feed">
-      <button class="btn btn-primary mb-3" id="capture">Capture Image</button>
+      <canvas id="canvas" style="display: inline-flex;"></canvas>
     </div>
+    <br>
+    <button class="btn btn-primary mb-3" id="capture">Capture Image</button>
 
     <!-- Login Form -->
      <br><br>
-    <form>
+     <form method="POST" action="{{url_for('signing')}}"  enctype="multipart/form-data" id="login-form">
       <div class="mb-3">
-        <label for="email" class="form-label">Username or Email</label>
+        <label for="email" class="form-label"> Email</label>
         <input type="email" class="form-control" id="email" placeholder="Enter your email or username">
       </div>
 
@@ -35,6 +37,7 @@
         <label for="password" class="form-label">Password</label>
         <input type="password" class="form-control" id="password" placeholder="Enter your password">
       </div>
+      <input type="hidden" id="captured-image" name="captured-image">
 
       <button type="submit" class="btn btn-login btn-primary">login </button>
     </form>

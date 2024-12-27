@@ -1,5 +1,7 @@
 from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for
-from facedetection import gen_frames,detect_face
+from werkzeug.security import check_password_hash, generate_password_hash
+from facedetection import gen_frames, detect_face
+from deepface import DeepFace
 from datetime import datetime
 import io
 import base64
@@ -170,6 +172,59 @@ def contact():
 def login():
     return render_template('signin.html')
 
+@app.route('/signing', methods=['POST'])
+def signing():
+    data = request.get_json()  # Get JSON data from the request
+    email = data.get('email')
+    password = data.get('password')
+    captured_image_data = data.get('captured_image_data')
+
+    if not email or not password or not captured_image_data:
+        return jsonify({"message": "Please fill out all fields."}), 400
+
+    # Use SELECT query to check if the email exists in the database
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT user_id, password, face_id FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
+
+    if not user:
+        return jsonify({"message": "Email not found."}), 404
+
+    user_id, stored_password, stored_face_image = user
+    
+    if hashlib.sha256(password.encode()).hexdigest() != stored_password:
+        return jsonify({"message": "Incorrect password."}), 401
+
+    # Decode the captured image (base64 to binary)
+    try:
+        image_data = base64.b64decode(captured_image_data.split(',')[1])  # Remove the data URL prefix
+        nparr = np.frombuffer(image_data, np.uint8)  # Convert byte data to numpy array
+        captured_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Decode into an image format OpenCV can handle
+    except Exception as e:
+        return jsonify({"message": "Error processing image."}), 500
+
+    # Check if the user has a stored face image in the database
+    if not stored_face_image:
+        return jsonify({"message": "No face image found for this user."}), 404
+
+    try:
+        # Decode stored face image from BLOB and convert to numpy array
+        stored_face_image = np.frombuffer(stored_face_image, np.uint8)
+        stored_face_image = cv2.imdecode(stored_face_image, cv2.IMREAD_COLOR)
+
+        # Use DeepFace to compare the captured image with the stored face image
+        result = DeepFace.verify(captured_image, stored_face_image)
+
+        # Check the result for face match
+        if result["verified"]:
+            return jsonify({"message": "Login successful."}), 200
+        else:
+            return jsonify({"message": "Face does not match."}), 403
+    except Exception as e:
+        return jsonify({"message": "Error comparing faces."}), 500
+
+    return jsonify({'message': 'saved successfully'})
 @app.route('/signup')
 def signup():
     return render_template('signup.html') 

@@ -1,27 +1,85 @@
-    // // Get elements from DOM
-    // const video = document.getElementById('video');
-    // const captureBtn = document.getElementById('capture');
+document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture');
+    const capturedImageInput = document.getElementById('captured-image');
+  
+    captureButton.addEventListener('click', () => {
+        // Set canvas size equal to video feed size
+        canvas.width = video.width;
+        canvas.height = video.height;
+  
+        // Draw the video frame onto the canvas
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+        // Convert canvas content to a data URL (image)
+        const imageData = canvas.toDataURL('image/png');
+  
+        // Set the captured image to the hidden input value
+        
+  
+        // Change the canvas display style to block (or inline if preferred)
+        canvas.style.display = 'block'; 
 
-    // // Prompt user to grant access to webcam
-    // navigator.mediaDevices.getUserMedia({ video: true })
-    //   .then((stream) => {
-    //     video.srcObject = stream;
-    //   })
-    //   .catch((err) => {
-    //     console.error("Error accessing the camera: " + err);
-    //   });
+        // Send the captured image to the backend for processing
+        fetch('/capture_image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+            if (data.message === 'face detected continue to register') {
+                capturedImageInput.value = imageData;
+                alert(data.message);
+            } else {
+                alert('Image not clear. Ensure your face is clear.');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
 
-    // // Capture button functionality
-    // captureBtn.addEventListener('click', function() {
-    //   const canvas = document.createElement('canvas');
-    //   const context = canvas.getContext('2d');
-    //   canvas.width = video.videoWidth;
-    //   canvas.height = video.videoHeight;
-    //   context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-    //   // Show captured image (optional)
-    //   const imageDataURL = canvas.toDataURL('image/png');
-    //   console.log("Captured image: ", imageDataURL);
-      
-    //   // Here you can send the image to the server or use face recognition logic
-    // });
+    // Form validation before submission
+    document.getElementById('login-form').addEventListener('submit', function(event) {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const capturedImageData = capturedImageInput.value;
+        event.preventDefault();
+        if (!email || !password || !capturedImageData) {
+            alert('Please fill out all fields and capture your image.');  // Prevent form submission
+            return;
+        }
+  
+        const formData = {
+            email: email,
+            password: password,
+            captured_image_data: capturedImageData
+        };
+  
+        // Send the data using fetch()
+        fetch('/signing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            alert(data.message);
+            if(data.message === "Login successful."){
+                window.location.href = '/';
+            }else{
+                
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    });
+});
