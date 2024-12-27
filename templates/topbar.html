@@ -19,13 +19,22 @@
             </form>
         </div>
         <div class="col-lg-4 col-6 text-right">
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown">My Account</button>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <button class="dropdown-item" type="button" onclick="location.href='{{url_for('login')}}';">Sign in</button>
-                    <button class="dropdown-item" type="button" onclick="location.href='{{url_for('signup')}}';">Sign up</button>
+            {% if session['username'] %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown">Welcome, {{ session['username'] }} !</button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <button class="dropdown-item" type="button" onclick="location.href='{{url_for('logout')}}';">log out </button>
+                    </div>
                 </div>
-            </div>
+            {% else %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown">My Account</button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <button class="dropdown-item" type="button" onclick="location.href='{{url_for('login')}}';">Sign in</button>
+                        <button class="dropdown-item" type="button" onclick="location.href='{{url_for('signup')}}';">Sign up</button>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

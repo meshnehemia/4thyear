@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for
+from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from facedetection import gen_frames, detect_face
 from deepface import DeepFace
@@ -13,6 +13,7 @@ from database import connect
 from mysql.connector import errorcode
 from flask_sqlalchemy import SQLAlchemy
 import pymysql
+import os
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
@@ -20,6 +21,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(24)  # Required for session
   # needed for flash messages
 
 def categories():
@@ -185,14 +187,14 @@ def signing():
     # Use SELECT query to check if the email exists in the database
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute("SELECT user_id, password, face_id FROM users WHERE email = %s", (email,))
+    cursor.execute("SELECT user_id, password,user_name, face_id FROM users WHERE email = %s", (email,))
     user = cursor.fetchone()
 
     if not user:
         return jsonify({"message": "Email not found."}), 404
 
-    user_id, stored_password, stored_face_image = user
-    
+    user_id, stored_password,user_name, stored_face_image = user
+
     if hashlib.sha256(password.encode()).hexdigest() != stored_password:
         return jsonify({"message": "Incorrect password."}), 401
 
@@ -218,16 +220,22 @@ def signing():
 
         # Check the result for face match
         if result["verified"]:
-            return jsonify({"message": "Login successful."}), 200
+            session['user_id'] = user_id
+            session['username'] = user_name
+            return jsonify({"message": "Login successful.","user_id": session['user_id'], "username": session['username']}), 200
         else:
             return jsonify({"message": "Face does not match."}), 403
     except Exception as e:
         return jsonify({"message": "Error comparing faces."}), 500
-
-    return jsonify({'message': 'saved successfully'})
 @app.route('/signup')
 def signup():
     return render_template('signup.html') 
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    session.pop('user_id', None)
+    return redirect(url_for('home'))
  # Render the registration form
 @app.route('/register', methods=['POST'])
 def register():
