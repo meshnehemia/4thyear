@@ -117,12 +117,9 @@ def productsphoto(product_id):
     finally:
         conn.close()
 
-
 @app.context_processor
 def show_topadvertised():
     return {'advertised': topadvertised()}
-
-
 
 # featured products 
 def featured():
@@ -144,19 +141,89 @@ def featured():
 def feature():
     return {'featured': featured()}
 
-
-
 @app.route('/')
 def home():
     return render_template('index.html')
 
+def calculate_total_cost(carts):
+    if 'user_id' in session:
+        total_cost = 0 
+        for cart in carts:
+            quantity = cart[6]
+            prices = [cart[3]] 
+            if cart[4]:
+                prices.append(cart[4])
+            if cart[5]:
+                prices.append(cart[5])
+            best_price = min(prices)
+            total_cost += quantity * best_price
+        return total_cost
+    else:
+        return
+
+@app.context_processor   
+def cartcount():
+    if 'user_id' in session:
+        conn = connect()
+        cursor = conn.cursor()
+        
+        # Pass session['user_id'] as a tuple
+        cursor.execute('SELECT COUNT(*) FROM cart WHERE user_id = %s', (session['user_id'],))
+        
+        result = cursor.fetchone()
+        total_items = result[0] if result[0] is not None else 0
+        return {'number_of_cart_items': total_items}
+    
+    return {'number_of_cart_items': 0}
+
+
+
+def carts():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        db = connect()
+        cursor = db.cursor()
+        query = """
+        SELECT 
+            c.cart_id,
+            p.product_name,
+            p.cover_photo,
+            p.price,
+            f.new_price AS featured_price,
+            d.new_price AS discount_price,
+            c.number_of_items,
+            c.date_created
+        FROM 
+            Cart c
+        JOIN 
+            Products p ON c.product_id = p.product_id
+        LEFT JOIN 
+            Featured f ON p.product_id = f.product_id
+        LEFT JOIN 
+            Discounts d ON p.product_id = d.product_id
+        WHERE 
+            c.user_id = %s
+        """
+        cursor.execute(query, (user_id,))
+        user_carts = cursor.fetchall()
+        cursor.close()
+        return user_carts
+    else: 
+        return
+
+
 @app.route('/cart')
 def cart():
-    return render_template('cart.html')
+    if 'user_id' in session:
+        user_carts = carts()
+        return render_template('cart.html', cart=user_carts, total = calculate_total_cost(user_carts))
+    else:
+        return render_template('cart.html')
 
 @app.route('/paymentdetails')
 def paymentdetails():
-    return render_template('paymentdetails.html')
+    item = carts()
+    return render_template('paymentdetails.html', items = item, total = calculate_total_cost(item))
 
 @app.route('/shop')
 def shop():
@@ -187,13 +254,13 @@ def signing():
     # Use SELECT query to check if the email exists in the database
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute("SELECT user_id, password,user_name, face_id FROM users WHERE email = %s", (email,))
+    cursor.execute("SELECT user_id, password,user_name, face_id,full_name , email, phone_number FROM users WHERE email = %s", (email,))
     user = cursor.fetchone()
 
     if not user:
         return jsonify({"message": "Email not found."}), 404
 
-    user_id, stored_password,user_name, stored_face_image = user
+    user_id, stored_password,user_name, stored_face_image,full_name ,em, phone_number = user
 
     if hashlib.sha256(password.encode()).hexdigest() != stored_password:
         return jsonify({"message": "Incorrect password."}), 401
@@ -222,6 +289,9 @@ def signing():
         if result["verified"]:
             session['user_id'] = user_id
             session['username'] = user_name
+            session['full_name'] = full_name
+            session['email'] = em
+            session['phone_number'] = phone_number
             return jsonify({"message": "Login successful.","user_id": session['user_id'], "username": session['username']}), 200
         else:
             return jsonify({"message": "Face does not match."}), 403

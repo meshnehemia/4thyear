@@ -90,6 +90,19 @@ try:
     cursor.execute(feature)
     print("Table created successfully.")
 
+    cart ="""CREATE TABLE IF NOT EXISTS Cart (
+    cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    user_id INT NOT NULL,
+    date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    number_of_items INT NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    );
+    """
+    cursor.execute(cart)
+    print("Table cart created successfully.")
+
     
     
 except mysql.connector.Error as err:
