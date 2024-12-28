@@ -1,6 +1,6 @@
 from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for, session
 from werkzeug.security import check_password_hash, generate_password_hash
-from facedetection import gen_frames, detect_face
+from facedetection import gen_frames, detect_face , genandface
 from deepface import DeepFace
 from datetime import datetime
 import io
@@ -187,7 +187,7 @@ def carts():
         SELECT 
             c.cart_id,
             p.product_name,
-            p.cover_photo,
+            p.product_id,
             p.price,
             f.new_price AS featured_price,
             d.new_price AS discount_price,
@@ -360,6 +360,10 @@ def register():
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/transactionfeed')
+def transactionfeed():
+    return Response(genandface(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 @app.route('/capture_image', methods=['POST'])
 def capture_image():
     try:
@@ -388,6 +392,11 @@ def capture_image():
     except Exception as e:
         return jsonify({'message': f'Error: {str(e)}'}), 400
 
+
+
+@app.route('/transact')
+def transaction():
+    return render_template('transactions.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

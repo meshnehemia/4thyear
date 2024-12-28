@@ -15,7 +15,7 @@
                     {% if cart %}
                     {% for item in cart %}
                     <tr>
-                            <td class="align-middle"> <a href="#"></a><img src="img/product-1.jpg" alt="" style="width: 50px;"> {{ item[1] }} </a></td>
+                            <td class="align-middle"> <a href="#"></a><img src="{{ url_for('productsphoto', product_id= item[2]) }}" alt="" style="width: 50px;"> {{ item[1] }} </a></td>
                             {% set prices = [item[3]] %} <!-- Add original price -->
                             {% if item[4] %} <!-- Check if featured price exists -->
                                 {% set prices = prices + [item[4]] %}
