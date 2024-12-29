@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 from deepface import DeepFace
 from database import connect
-from flask import session
 def gen_frames():
     cap = cv2.VideoCapture(0)  # Capture video from webcam
     while True:
@@ -38,13 +37,16 @@ def detect_face(img):
         return False
     
 
-def genandface():
+def genandface(id):
     connection = connect()
     cursor = connection.cursor()
-
-    # Fetch the stored face image from the database
-    cursor.execute("SELECT face_id FROM users WHERE user_id = %s", (6,))
+    insert_query = """
+    INSERT INTO tinitiation (user_id, status)
+    VALUES (%s, %s);
+    """
+    cursor.execute("SELECT face_id FROM users WHERE user_id = %s", (id,))
     stored_face_image = cursor.fetchone()
+
 
     if not stored_face_image:
         print("No face image found for this user.")
@@ -78,6 +80,8 @@ def genandface():
                 result = DeepFace.verify(captured_image, stored_face_image)
 
                 if result["verified"]:
+                    cursor.execute(insert_query, (id, "verified"))
+                    connection.commit()
                     print("Face matched.")
                     cap.release()  # Stop the video feed once matched
                     cv2.destroyAllWindows()
@@ -85,8 +89,7 @@ def genandface():
                     frame = buffer.tobytes()
                     yield (b'--frame\r\n'
                     b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-                    return "Face matched. Transaction verified."  # Or any other desired action
+                    return 
 
         except Exception as e:
             print(f"Face detection/verification error: {e}")

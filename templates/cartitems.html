@@ -33,20 +33,20 @@
                             <td class="align-middle">
                                 <div class="input-group quantity mx-auto" style="width: 100px;">
                                     <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-primary btn-minus" >
+                                        <button class="btn btn-sm btn-primary btn-minus"   value="{{ item[2] }}" onclick="reduceValue(this)">
                                         <i class="fa fa-minus"></i>
                                         </button>
                                     </div>
                                     <input type="text" class="form-control form-control-sm bg-secondary border-0 text-center" value="{{ item[6] }}">
                                     <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-primary btn-plus">
+                                        <button class="btn btn-sm btn-primary btn-plus"  value="{{ item[2] }}" onclick="addValue(this)">
                                             <i class="fa fa-plus"></i>
                                         </button>
                                     </div>
                                 </div>
                             </td>
                             <td class="align-middle"> ksh {{ best_price * item[6] }}</td>
-                            <td class="align-middle"><button class="btn btn-sm btn-danger"><i class="fa fa-times"></i></button></td>
+                            <td class="align-middle"><button class="btn btn-sm btn-danger" value="{{ item[2] }}" onclick="deleteproduct(this)"><i class="fa fa-times"></i></button></td>
                         </a>
                     </tr>
                     {% endfor %}
@@ -86,3 +86,61 @@
         </div>
     </div>
 </div>
+<script>
+    // Function to alert the value of the button when clicked
+    function reduceValue(button) {
+        var data = button.value;
+        fetch('/rcart', {
+            method: 'POST', 
+                        headers: {
+                'Content-Type': 'application/json'  // Tell the server we're sending JSON data
+            },
+            body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+        })
+        .then(response => response.json())  // Parse the JSON response from the server
+        .then(data => {
+            alert(data.message)
+        })
+        .catch((error) => {
+            alert(error)
+        });
+    }
+    function addValue(button) {
+        var data = button.value;
+        fetch('/acart', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+        })
+        .then(response => response.json())  // Parse the JSON response from the server
+        .then(data => {
+            alert(data.message);
+        })
+        .catch((error) => {
+            console.log(error);
+            alert(error);
+        });
+        
+    }
+    function deleteproduct(button) {
+        var data = button.value;
+        fetch('/deletep', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+        })
+        .then(response => response.json())  // Parse the JSON response from the server
+        .then(data => {
+            alert(data.message);
+        })
+        .catch((error) => {
+            console.log(error);
+            alert(error);
+        });
+        
+    }
+</script>

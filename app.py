@@ -1,5 +1,4 @@
-from flask import Flask, render_template, send_file, Response, jsonify, request, flash, redirect, url_for, session
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Flask, render_template, send_file, Response, jsonify, request, redirect, url_for, session
 from facedetection import gen_frames, detect_face , genandface
 from deepface import DeepFace
 from datetime import datetime
@@ -8,12 +7,11 @@ import base64
 import numpy as np
 import cv2
 import hashlib
-import mysql.connector
 from database import connect
-from mysql.connector import errorcode
-from flask_sqlalchemy import SQLAlchemy
 import pymysql
 import os
+import json
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
@@ -292,6 +290,7 @@ def signing():
             session['full_name'] = full_name
             session['email'] = em
             session['phone_number'] = phone_number
+            session['transact'] = "not verified";
             return jsonify({"message": "Login successful.","user_id": session['user_id'], "username": session['username']}), 200
         else:
             return jsonify({"message": "Face does not match."}), 403
@@ -362,7 +361,7 @@ def video_feed():
 
 @app.route('/transactionfeed')
 def transactionfeed():
-    return Response(genandface(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(genandface(session['user_id']), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/capture_image', methods=['POST'])
 def capture_image():
@@ -397,6 +396,102 @@ def capture_image():
 @app.route('/transact')
 def transaction():
     return render_template('transactions.html')
+
+@app.route('/verify')
+def face_recognized():
+    select_query = """
+    SELECT status FROM tinitiation WHERE user_id = %s;
+    """
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(select_query, (session['user_id'],))
+    result = cursor.fetchone()
+    if result is None:
+        return jsonify({"verified": "not verified"}), 404
+    else:
+        delete_query = "DELETE FROM tinitiation WHERE user_id = %s"
+        cursor.execute(delete_query, (session['user_id'],))
+        conn.commit()
+        return jsonify({"verified": result}), 200
+    
+@app.route('/rcart', methods=['POST'])
+def reducecart():
+        data = request.get_json() 
+        conn = connect()
+        cursor = conn.cursor()
+        select_query = "SELECT number_of_items FROM cart WHERE user_id = %s AND product_id = %s"
+        cursor.execute(select_query, (session['user_id'], data))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({"message": "Item not found in the cart"}), 404
+        
+        current_quantity = result[0]
+        if current_quantity <= 1:
+            return jsonify({"message": "the minimum product allowed is 1 "}), 400
+        
+        new_quantity = current_quantity - 1
+        if new_quantity < 1:
+            new_quantity = 1
+        update_query = "UPDATE cart SET number_of_items = %s WHERE user_id = %s AND product_id = %s"
+        cursor.execute(update_query, (new_quantity, session['user_id'], data))
+        conn.commit()
+        return jsonify({"message": "updated successfully "}), 200
+
+@app.route('/acart', methods=['POST'])
+def addcart():
+        data = request.get_json() 
+        conn = connect()
+        cursor = conn.cursor()
+        select_query = "SELECT number_of_items FROM cart WHERE user_id = %s AND product_id = %s"
+        cursor.execute(select_query, (session['user_id'], data))
+        result = cursor.fetchone()
+
+        if result is None:
+            return jsonify({"message": "Item not found in the cart"}), 404
+        
+        current_quantity = result[0]
+        new_quantity = current_quantity + 1
+        update_query = "UPDATE cart SET number_of_items = %s WHERE user_id = %s AND product_id = %s"
+        cursor.execute(update_query, (new_quantity, session['user_id'], data))
+        conn.commit()
+        return jsonify({"message": "updated successfully "}), 200
+
+@app.route('/deletep', methods=['POST'])
+def deletecart():
+        data = request.get_json() 
+        conn = connect()
+        cursor = conn.cursor()
+        delete_query = "DELETE FROM cart WHERE user_id = %s AND product_id = %s"
+        print(session['user_id'])
+        print(data)
+        print(cursor.execute(delete_query, (session['user_id'], data)))
+        conn.commit()
+        return jsonify({"message": "deleted successfully "}), 200
+
+@app.route('/sendmessage', methods=['POST'])
+def insert_contact_form():
+    try:
+        conn = connect()
+        data = request.get_json()
+        full_name = data['full_name']
+        email = data['email']
+        subject = data['subject']
+        message = data['message']
+        status = "sent"
+        insert_query = """
+        INSERT INTO contact_form (full_name, email, subject, message,status)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor = conn.cursor()
+        cursor.execute(insert_query, (full_name, email, subject, message, status))
+        conn.commit() 
+        return jsonify({"message": "message sent successully"}), 201
+
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -103,7 +103,27 @@ try:
     cursor.execute(cart)
     print("Table cart created successfully.")
 
-    
+    transact= '''CREATE TABLE IF NOT EXISTS tinitiation (
+    user_id INT NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    PRIMARY KEY (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    );'''
+    cursor.execute(transact)
+    print("Table transact created successfully.")
+
+
+    contact = '''CREATE TABLE IF NOT EXISTS contact_form (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );'''
+    cursor.execute(contact)
+    print("Table contact created successfully.")
     
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
