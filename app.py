@@ -227,10 +227,6 @@ def paymentdetails():
 def shop():
     return render_template('shop.html')
 
-@app.route('/productdetails')
-def details():
-    return render_template('detail.html')
-
 @app.route('/contant')
 def contact():
     return render_template('contact.html')
@@ -440,6 +436,7 @@ def reducecart():
 
 @app.route('/acart', methods=['POST'])
 def addcart():
+        session['user_id']=6;
         data = request.get_json() 
         conn = connect()
         cursor = conn.cursor()
@@ -448,7 +445,10 @@ def addcart():
         result = cursor.fetchone()
 
         if result is None:
-            return jsonify({"message": "Item not found in the cart"}), 404
+            insert = "INSERT INTO cart (user_id, product_id, number_of_items) VALUES (%s, %s, %s)"
+            cursor.execute(insert,(session['user_id'],data,1))
+            conn.commit()
+            return jsonify({"message": "Item added successful"}), 404
         
         current_quantity = result[0]
         new_quantity = current_quantity + 1
@@ -490,6 +490,36 @@ def insert_contact_form():
 
     except Exception as e:
         return jsonify({"message": str(e)}), 500
+
+@app.route('/moreinformation/<int:product_id>')
+def productdetails(product_id):
+
+    conn = connect()  # Assuming connect() function exists to get DB connection
+    try:
+        cursor = conn.cursor()
+        query = '''
+           SELECT p.product_name, p.description, p.price, p.product_id,
+            f.new_price, f.feature_description
+            FROM products p
+            LEFT JOIN featured f ON p.product_id = f.product_id
+            WHERE p.product_id = %s
+        '''
+        cursor.execute(query, (product_id,))
+        product_item = cursor.fetchone()
+        images_query = '''
+            SELECT image_data FROM ProductImages WHERE product_id = %s;
+        '''
+        cursor.execute(images_query, (product_id,))
+        images = cursor.fetchall()
+
+        if not images:
+            return render_template('detail.html', product=product_item, images=images_list)
+        images_list = [base64.b64encode(image[0]).decode('utf-8') for image in images]
+
+        return render_template('detail.html', product=product_item, images=images_list)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

@@ -8,14 +8,11 @@
                 <div class="product-img position-relative overflow-hidden">
                     <img class="img-fluid w-100" src="{{ url_for('productsphoto', product_id=id) }}" alt="">
                     <div class="product-action">
-                        <a class="btn btn-outline-dark btn-square" href=""><i class="fa fa-shopping-cart"></i></a>
-                        <a class="btn btn-outline-dark btn-square" href=""><i class="far fa-heart"></i></a>
-                        <a class="btn btn-outline-dark btn-square" href=""><i class="fa fa-sync-alt"></i></a>
-                        <a class="btn btn-outline-dark btn-square" href=""><i class="fa fa-search"></i></a>
+                        <button class="btn btn-outline-dark btn-square" value="{{ id }}" onclick="addValue(this)" ><i class="fa fa-shopping-cart"></i></button>
                     </div>
                 </div>
                 <div class="text-center py-4">
-                    <a class="h6 text-decoration-none text-truncate" href="">{{ name }}</a>
+                    <a class="h6 text-decoration-none text-truncate" href="{{ url_for('productdetails', product_id=id) }}">{{ name }}</a>
                     <div class="d-flex align-items-center justify-content-center mt-2">
                         <h5>{{ new_price }}</h5><h6 class="text-muted ml-2"><del>{{ price }}</del></h6>
                     </div>
@@ -33,4 +30,25 @@
         {% endif %}
         {% endfor %}
     </div>
+    <script>
+    function addValue(button) {
+        var data = button.value;
+        fetch('/acart', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+        })
+        .then(response => response.json())  // Parse the JSON response from the server
+        .then(data => {
+            alert(data.message);
+        })
+        .catch((error) => {
+            console.log(error);
+            alert(error);
+        });
+        
+    }
+    </script>
 </div>

@@ -4,17 +4,15 @@
             <div id="product-carousel" class="carousel slide" data-ride="carousel">
                 <div class="carousel-inner bg-light">
                     <div class="carousel-item active">
-                        <img class="w-100 h-100" src="img/product-1.jpg" alt="Image">
+                        <img class="w-100 h-100" src="{{ url_for('productsphoto', product_id= product[3] ) }}" alt="Image">
                     </div>
-                    <div class="carousel-item">
-                        <img class="w-100 h-100" src="img/product-2.jpg" alt="Image">
-                    </div>
-                    <div class="carousel-item">
-                        <img class="w-100 h-100" src="img/product-3.jpg" alt="Image">
-                    </div>
-                    <div class="carousel-item">
-                        <img class="w-100 h-100" src="img/product-4.jpg" alt="Image">
-                    </div>
+                    {% if images %}
+                        {% for image in images %}
+                            <div class="carousel-item">
+                                <img class="w-100 h-100" src="data:image/jpeg;base64,{{ image }}" alt="Product Image" />
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 <a class="carousel-control-prev" href="#product-carousel" data-slide="prev">
                     <i class="fa fa-2x fa-angle-left text-dark"></i>
@@ -26,7 +24,7 @@
         </div>
         <div class="col-lg-7 h-auto mb-30">
             <div class="h-100 bg-light p-30">
-                <h3>Product Name Goes Here</h3>
+                <h3>{{ product[0] }}</h3>
                 <div class="d-flex mb-3">
                     <div class="text-primary mr-2">
                         <small class="fas fa-star"></small>
@@ -37,14 +35,33 @@
                     </div>
                     <small class="pt-1">(99 Reviews)</small>
                 </div>
-                <h3 class="font-weight-semi-bold mb-4">$150.00</h3>
-                <p class="mb-4">Volup erat ipsum diam elitr rebum et dolor. Est nonumy elitr erat diam stet sit
-                    clita ea. Sanc ipsum et, labore clita lorem magna duo dolor no sea
-                    Nonumy</p>
+                <h3 class="font-weight-semi-bold mb-4">ksh {{ product[2] }}</h3>
+                <p class="mb-4">{{ product[1] }}</p>
                 <div class="d-flex align-items-center mb-4 pt-2">
-                    <button class="btn btn-primary px-3"><i class="fa fa-shopping-cart mr-1"></i> Add To
+                    <button class="btn btn-primary px-3" value="{{ product[3] }}" onclick="addValue(this)"><i class="fa fa-shopping-cart mr-1"></i> Add To
                         Cart</button>
                 </div>
+                <script>
+                function addValue(button) {
+                    var data = button.value;
+                    fetch('/acart', {
+                        method: 'POST', 
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+                    })
+                    .then(response => response.json())  // Parse the JSON response from the server
+                    .then(data => {
+                        alert(data.message);
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        alert(error);
+                    });
+                    
+                }
+            </script>
             </div>
         </div>
     </div>

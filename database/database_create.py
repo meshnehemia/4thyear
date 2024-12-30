@@ -124,7 +124,20 @@ try:
     );'''
     cursor.execute(contact)
     print("Table contact created successfully.")
-    
+
+
+    product_images = '''CREATE TABLE IF NOT EXISTS ProductImages (
+    image_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    image_data BLOB NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE
+        );
+    '''
+    cursor.execute(product_images)
+    print("Table PRODUCT IMAGES CREATED  created successfully.")
+
+
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
         print("Something is wrong with your user name or password")
