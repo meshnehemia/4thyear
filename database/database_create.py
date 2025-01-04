@@ -137,6 +137,47 @@ try:
     cursor.execute(product_images)
     print("Table PRODUCT IMAGES CREATED  created successfully.")
 
+    staff = '''CREATE TABLE IF NOT EXISTS staff (
+    staff_id SERIAL PRIMARY KEY,  -- Auto-incrementing primary key for each staff member
+    name_of_staff VARCHAR(100) NOT NULL,  -- Name of the staff member
+    phone_number VARCHAR(15) NOT NULL,    -- Phone number
+    email_address VARCHAR(100) UNIQUE NOT NULL,  -- Unique email address, required
+    level VARCHAR(50),                    -- Staff's level (e.g., junior, senior, manager)
+    date_employed DATE DEFAULT CURRENT_DATE,  -- Automatically set employment date to current date if not provided
+    status VARCHAR(50) DEFAULT 'active',      -- Employment status, default is 'active'
+    id_number VARCHAR(20) UNIQUE NOT NULL   -- Unique identification number for the staff member
+);
+'''
+    cursor.execute(staff)
+    print("Table staff CREATED  created successfully.")
+
+
+    sales = '''CREATE TABLE IF NOT EXISTS sales (
+        sale_id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        client_id INT,
+        sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sale_type VARCHAR(50),
+        amount_bought DECIMAL(10, 2),
+        profit_made DECIMAL(10, 2),
+        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+        FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE NO ACTION
+    );
+    '''
+    cursor.execute(sales)
+    print("Table 'sales' created successfully.")
+
+    orders ='''CREATE TABLE IF NOT EXISTS orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    date_placed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+'''
+
+    cursor.execute(orders)
+    print("Table 'orders' created successfully.")
 
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:

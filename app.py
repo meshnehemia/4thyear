@@ -11,6 +11,7 @@ from database import connect
 import pymysql
 import os
 import json
+from past7daysales import get_sales_past_7_days , get_sales_online_vs_instore,get_sales_last_8_hours,get_total_sales_per_week,get_top_sold_products, monthlyprofit,get_order_status_data
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -357,6 +358,7 @@ def video_feed():
 
 @app.route('/transactionfeed')
 def transactionfeed():
+    session['user_id'] = 1;
     return Response(genandface(session['user_id']), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/capture_image', methods=['POST'])
@@ -521,7 +523,25 @@ def productdetails(product_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/scan')
+def scanproducts():
+    return render_template('onother.html')
 
 
+@app.route('/dashboardAdmin')
+def dashboard():
+    monthly_data = monthlyprofit()
+    return render_template('dashboard.html', salesonlinevsstore=get_sales_online_vs_instore(), past8hrssales= get_sales_last_8_hours(), weekly = get_total_sales_per_week(), topsold= get_top_sold_products(), monthly_profits=monthly_data['monthly_profits'], months=monthly_data['months'])
+
+@app.route('/get_order_status')
+def get_order_status():
+    order_status_data = get_order_status_data()  # e.g., {'pending': 300, 'completed': 450, 'assigned': 250}
+    
+    return jsonify(order_status_data)
+
+
+@app.route('/salesperweek')
+def salesperweek():
+    return get_sales_past_7_days()
 if __name__ == '__main__':
     app.run(debug=True)

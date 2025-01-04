@@ -1,0 +1,168 @@
+{% include 'head.html' %}
+    
+    <style>
+        body {
+            background-color: white;
+        }
+        #header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #header h1 {
+            font-size: 36px;
+        }
+        #header .intelligent {
+            background-color: black;
+            color: white;
+            padding: 10px 20px;
+        }
+        #header .supermarket {
+            background-color: rgb(223, 183, 4);
+            color: white;
+            padding: 10px 20px;
+        }
+        #title {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #separator {
+            height: 2px;
+            background-color: gray;
+            margin: 20px 0;
+        }
+        .content {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .content .section {
+            margin: 0 20px;
+            text-align: center;
+        }
+        .captured-image, .captured-text {
+            background-color: gray;
+            width: 200px;
+            height: 200px;
+            margin:0px;
+        }
+        .capture-button {
+            margin-top: 10px;
+        }
+        .captured-items {
+            margin-top: 20px;
+        }
+        .captured-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: white;
+            border-bottom: 1px solid #ccc;
+        }
+        .captured-item img {
+            width: 50px;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div id="header">
+        <h1 class="intelligent">Intelligent</h1>
+        <h1 class="supermarket">Supermarket</h1>
+    </div>
+
+    <!-- Title Section -->
+    <div id="title">
+        <h1>CHUKA BRANCH </h1>
+        <h2>Buy in the self - Welcome Customer</h2>
+    </div>
+
+    <!-- Separator -->
+    <div id="separator"></div>
+
+    <!-- Main Content Section -->
+    <div class="content">
+        <!-- Face Capture Section -->
+        <div class="section" id="face-section" style="margin-left: 0px;">
+            <h3>Face Capture</h3>
+            <img style="width: 40%; height: 40%; margin-right: 0px;" src="{{ url_for('transactionfeed') }}" alt="Real-Time Video Feed">
+        </div>
+
+        <!-- Login Section -->
+        <div class="section" id="login-section">
+            <h3>Login</h3>
+            <input type="text" id="username" class="form-control" placeholder="Username"><br>
+            <input type="password" id="password" class="form-control" placeholder="Password"><br>
+            <button class="btn btn-success capture-button" onclick="login()">Login</button>
+        </div>
+
+        <!-- Text Identification Section -->
+        <div class="section" id="text-section" style="width: 50%; height: 500px; margin-right: 50px;">
+            <h3>Text Identification</h3>
+            <img style="width: 100%; height: 100%; margin-right: 0px;" src="{{ url_for('transactionfeed') }}" alt="Real-Time Video Feed">
+            <!-- <div class="captured-text" id="text-input" style="width: 100%; height: 100%;">Captured Text Will Appear Here</div> -->
+            <!-- <button class="btn btn-warning capture-button" onclick="captureText()">Capture Text</button> -->
+        </div>
+    </div>
+
+    <!-- Separator -->
+    <div id="separator"></div>
+
+    <!-- Captured Items Section -->
+    <div class="captured-items" id="captured-items">
+        <!-- Captured items will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // Simulating face capture using camera
+        function captureFace() {
+            const faceImage = document.getElementById('face-image');
+            // For simplicity, using placeholder for face capture image
+            faceImage.innerHTML = "<img src='https://via.placeholder.com/200' alt='Face Image'>";
+            alert('Face captured successfully!');
+        }
+
+        // Simulating login functionality
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'admin' && password === 'password') {
+                alert('Login successful!');
+            } else {
+                alert('Invalid credentials!');
+            }
+        }
+
+        // Simulating text capture
+        function captureText() {
+            const capturedText = 'Sample text extracted from image';  // Simulating OCR result
+            const capturedItems = document.getElementById('captured-items');
+            
+            const item = document.createElement('div');
+            item.classList.add('captured-item');
+            
+            const textLabel = document.createElement('span');
+            textLabel.textContent = capturedText;
+            item.appendChild(textLabel);
+
+            const img = document.createElement('img');
+            img.src = 'https://via.placeholder.com/50';  // Simulated image
+            item.appendChild(img);
+
+            const removeButton = document.createElement('button');
+            removeButton.classList.add('btn', 'btn-danger');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = function() {
+                item.remove();
+            };
+            item.appendChild(removeButton);
+
+            capturedItems.appendChild(item);
+        }
+    </script>
+</body>
+</html>

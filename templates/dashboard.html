@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Dashboard</title>
+    <title>Sales Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #343a40;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 18px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            background-color: #080808;
+        }
+
+        .dashboard {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .chart-section {
+            margin-bottom: 40px;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100% !important;
+            height: 400px !important;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 20px;
+        }
+
+        .charts-container.large-chart {
+            grid-template-columns: 1fr;
+        }
+
+        @media screen and (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .dashboard {
+                margin-left: 0;
+            }
+        }
+
+        table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .product-table img {
+            width: 50px;
+            height: 50px;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <a href="#sales">Dashboard</a>
+        <a href="#orders">orders </a>
+        <a href="#profits">add products </a>
+        <a href="#profits">workers </a>
+        <a href="#profits">face recognitions </a>
+        <a href="#profits">registered users</a>
+    </div>
+
+    <div class="dashboard">
+        <h1>Sales Dashboard</h1>
+
+        <!-- Line Chart (Sales per Day) -->
+        <div class="chart-section large-chart">
+            <h3>Total Number of Sales Per Day</h3>
+            <canvas id="lineChart"></canvas>
+        </div>
+
+        <!-- Pie Chart and Doughnut Chart Section -->
+        <div class="charts-container">
+            <div class="chart-section">
+                <h3>Orders Overview (Pending, Completed, Signed)</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-section">
+                <h3>Online vs In-Store Sales</h3>
+                <canvas id="doughnutChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Stacked Bar Chart and Grouped Bar Chart Section -->
+        <div class="charts-container">
+            <div class="chart-section">
+                <h3>Online vs On-Shelf Sales Per Hour</h3>
+                <canvas id="stackedBarChart"></canvas>
+            </div>
+            <div class="chart-section">
+                <h3>Total Sales (Online & On-Shelf)</h3>
+                <canvas id="groupedBarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Profit Chart -->
+        <div class="chart-section large-chart">
+            <h3>Profits Made</h3>
+            <canvas id="profitChart"></canvas>
+        </div>
+
+        <!-- Table for Top 5 Sold Products -->
+        <div class="table-section">
+            <h3>Top 10 Sold Products</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Number of Occurrences</th>
+                        <th>Total Sales</th>
+                        <th>Total Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in topsold %}
+                        <tr>
+                            <td>{{ product.product_name }}</td>
+                            <td>{{ product.number_of_occurrences }}</td>
+                            <td>{{ product.total_sales }}</td>
+                            <td>{{ product.total_profit }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const lineChartCtx = document.getElementById('lineChart').getContext('2d');
+        var salesChart = new Chart(lineChartCtx, {
+            type: 'line',
+            data: {
+                labels: [], // Initially empty
+                datasets: [{
+                    label: 'Total Sales for the Past 7 Days',
+                    data: [], // Initially empty
+                    borderColor: '#42a5f5',
+                    backgroundColor: 'rgba(66, 165, 245, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Function to fetch sales data
+        async function fetchSalesData() {
+            try {
+                const response = await fetch('/salesperweek');
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Update the chart with the data
+                    salesChart.data.labels = data.labels;  // Update labels (days of the week)
+                    salesChart.data.datasets[0].data = data.datasets[0].data;  // Update sales data
+
+                    // Re-render the chart to reflect the new data
+                    salesChart.update();
+                } else {
+                    console.error('Failed to fetch sales data');
+                }
+            } catch (error) {
+                console.error('Error fetching sales data:', error);
+            }
+        }
+        setInterval(fetchSalesData, 5000);
+        fetchSalesData();
+
+        // Pie Chart (Orders Overview)
+
+        const pieChartCtx = document.getElementById('pieChart').getContext('2d');
+
+// Function to fetch order status counts from the server
+async function fetchOrderStatusData() {
+    try {
+        const response = await fetch('/get_order_status');  // Endpoint to get order status data
+        const data = await response.json();
+        
+        // Assuming the server returns data like: { pending: 300, completed: 450, assigned: 250 }
+        const { pending, completed, assigned } = data;
+
+        // Create the pie chart with the fetched data
+        new Chart(pieChartCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Pending', 'Completed', 'Assigned'],
+                datasets: [{
+                    data: [pending, completed, assigned],
+                    backgroundColor: ['#ffb74d', '#81c784', '#64b5f6']
+                }]
+            }
+        });
+
+    } catch (error) {
+        alert('Error fetching order status data:', error);
+    }
+}
+
+// Call the function to fetch data and initialize the chart
+fetchOrderStatusData();
+
+        // const pieChartCtx = document.getElementById('pieChart').getContext('2d');
+        // new Chart(pieChartCtx, {
+        //     type: 'pie',
+        //     data: {
+        //         labels: ['Pending', 'Completed', 'Signed'],
+        //         datasets: [{
+        //             data: [300, 450, 250],
+        //             backgroundColor: ['#ffb74d', '#81c784', '#64b5f6']
+        //         }]
+        //     }
+        // });
+
+        // Doughnut Chart (Online vs On-Shelf Sales)
+        const salesData = {{ salesonlinevsstore | tojson }};
+        const doughnutChartCtx = document.getElementById('doughnutChart').getContext('2d');
+        new Chart(doughnutChartCtx, {
+            type: 'doughnut',
+            data: salesData
+        });
+
+        // Stacked Bar Chart (Online vs On-Shelf Sales per Hour)
+        const past8hrssale = {{ past8hrssales | tojson }};
+        const stackedBarChartCtx = document.getElementById('stackedBarChart').getContext('2d');
+        new Chart(stackedBarChartCtx, {
+            type: 'bar',
+            data:past8hrssale,
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true
+                    }
+                }
+            }
+        });
+
+        const week = {{ weekly | tojson }};
+        const groupedBarChartCtx = document.getElementById('groupedBarChart').getContext('2d');
+        new Chart(groupedBarChartCtx, {
+            type: 'bar',
+            data:week
+        });
+
+        // Profit Chart
+        const profitChartCtx = document.getElementById('profitChart').getContext('2d');
+        new Chart(profitChartCtx, {
+            type: 'line',
+            data:{ labels: {{ months | tojson }},  // This will pass the list of months to JavaScript
+                datasets: [{
+                    label: 'Profit Made',
+                    data: {{ monthly_profits | tojson }},  // This will pass the monthly profits data
+                    borderColor: '#ff7043',
+                    backgroundColor: 'rgba(255, 112, 67, 0.2)',
+                    fill: true
+                }]
+            }
+        });
+
+        // Salary vs Sales Chart (Line Chart)
+        const salaryVsSalesChartCtx = document.getElementById('salaryVsSalesChart').getContext('2d');
+        new Chart(salaryVsSalesChartCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [{
+                    label: 'Sales Profit',
+                    data: [5000, 7000, 6000, 7500, 9000, 12000, 15000],
+                    borderColor: '#ff7043',
+                    backgroundColor: 'rgba(255, 112, 67, 0.2)',
+                    fill: true
+                }, {
+                    label: 'Employee Salary',
+                    data: [2000, 2200, 2100, 2400, 2500, 2600, 2800],
+                    borderColor: '#42a5f5',
+                    backgroundColor: 'rgba(66, 165, 245, 0.2)',
+                    fill: true
+                }]
+            }
+        });
+    </script>
+</body>
+</html>
