@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Display</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+        }
+
+        .sidebar {
+            height: 100%;
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #343a40;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 18px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            background-color: #080808;
+        }
+
+        .container-fluids {
+            margin-left: 220px;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        @media screen and (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .container {
+                margin-left: 0;
+            }
+        }
+
+        .product-card {
+            max-width: 350px;
+            margin: 15px;
+        }
+
+        .product-card img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .product-card .card-body {
+            text-align: center;
+        }
+
+        .row {
+            justify-content: left;
+            margin-top: 60px;
+        }
+        .top{
+            position: fixed; 
+            top:0px;
+            left: 200px; 
+            padding:20px;
+            z-index: 1;
+            background-color: #eff0f1;
+            width: 100%; 
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <a href="/dashboardAdmin">Dashboard</a>
+        <a href="/ordersmanagement">Orders</a>
+        <a href="/productlists">Manage Products</a>
+        <a href="/wmanagement">Manage Workers</a>
+        <a href="#recognition">Face Recognition</a>
+        <a href="/newuser">Register Users</a>
+    </div>
+
+    <div class="container-fluids">
+        <h2 class="mb-4 top">Product List 
+            <a href="/addproduct" class="btn btn-success m-2"> add new product</a>
+            <a href="/addcategory" class="btn btn-success m-2"> add new category</a>
+        </h2>
+        
+        <div class="row d-flex flex-wrap">
+            <!-- Loop over products (Example for 20 products) -->
+            {% for i in range(20) %}
+            <div class="col-md-4 product-card">
+                <div class="card">
+                    <img src="https://via.placeholder.com/300" class="card-img-top" alt="Product Image">
+                    <div class="card-body">
+                        <h5 class="card-title">Product {{ i + 1 }}</h5>
+                        <p class="card-text">This is a great product with many features and benefits.</p>
+                        <h6>Price: ${{ 100 + i }}</h6>
+                        <h6>Featured Price: ${{ 90 + i }}</h6>
+                        <h6>Advertised Price: ${{ 95 + i }}</h6>
+                        <button class="btn btn-primary">Add to Features</button>
+                        <button class="btn btn-info mt-2">Add to Advertisements</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

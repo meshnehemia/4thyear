@@ -543,5 +543,31 @@ def get_order_status():
 @app.route('/salesperweek')
 def salesperweek():
     return get_sales_past_7_days()
+
+@app.route('/productlists')
+def productlist():
+    return render_template('products.html')
+
+@app.route('/addproduct')
+def addproduct():
+    return render_template('addproduct.html')
+
+@app.route('/newuser')
+def newuser():
+    return render_template('newstaff.html')
+
+@app.route('/wmanagement')
+def manageworkers():
+    return render_template('workersmanagement.html')
+
+@app.route('/ordersmanagement')
+def listoforders():
+    return render_template('listoforders.html')
+
+@app.route('/addcategory')
+def newcategory():
+    return render_template('newcategory.html')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
