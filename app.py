@@ -546,7 +546,39 @@ def salesperweek():
 
 @app.route('/productlists')
 def productlist():
-    return render_template('products.html')
+    db = connect()  # Connect to the database
+    cursor = db.cursor(dictionary=True)  # Use dictionary cursor to return results as dictionaries
+
+    # Query to get all products, their prices (base, feature, and advertised), and their categories
+    query = """
+    SELECT p.product_id, p.product_name, p.description, p.price,
+           f.new_price AS featured_price, 
+           d.new_price AS advertised_price, 
+           c.category_id, dc.category_name
+    FROM products p
+    LEFT JOIN featured f ON p.product_id = f.product_id
+    LEFT JOIN discounts d ON p.product_id = d.product_id
+    LEFT JOIN categories c ON p.product_id = c.product_id
+    LEFT JOIN d_categories dc ON c.category_id = dc.category_id
+    """
+
+    cursor.execute(query)
+    products = cursor.fetchall()  # Fetch all the product data
+
+    # Process the results to include 'nil' for missing prices and category information
+    for product in products:
+        if product['featured_price'] is None:
+            product['featured_price'] = 'nil'  # Set 'nil' if no featured price
+        if product['advertised_price'] is None:
+            product['advertised_price'] = 'nil'  # Set 'nil' if no advertised price
+        if product['category_name'] is None:
+            product['category_name'] = 'Uncategorized'  # Set 'Uncategorized' if no category assigned
+
+    # Retrieve all categories for the category dropdown in the modal
+    cursor.execute("SELECT category_id, category_name FROM d_categories")
+    categories = cursor.fetchall()
+
+    return render_template('products.html', products=products, categories=categories)
 
 @app.route('/addproduct')
 def addproduct():
@@ -567,6 +599,273 @@ def listoforders():
 @app.route('/addcategory')
 def newcategory():
     return render_template('newcategory.html')
+
+@app.route('/saveproduct', methods=['POST'])
+def saveproduct():
+    try:
+        serial_number = request.form['serial_number']
+        product_name = request.form['product_name']
+        description = request.form['description']
+        price = request.form['price']
+        
+        # Handle cover photo upload
+        cover_photo = request.files['cover_photo']
+        if cover_photo and cover_photo.filename != '':
+            photo_data = cover_photo.read()  # Read binary data of the file
+
+            # Insert product data into the database
+            db = connect()
+            cursor = db.cursor()
+
+            insert_query = '''
+            INSERT INTO products (product_id,product_name, description, price, cover_photo)
+            VALUES (%s, %s, %s, %s, %s)
+            '''
+            cursor.execute(insert_query, (serial_number,product_name, description, price, photo_data))
+            db.commit()
+            cursor.close()
+            db.close()
+
+            return jsonify({'success': True, 'message': 'Product has been added successfully!'})
+        else:
+            return jsonify({'success': False, 'message': 'Cover photo is required!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/save_category', methods=['POST'])
+def save_category():
+    try:
+        category_name = request.form['product_name']  # Get category name from form
+        # Handle cover photo upload
+        cover_photo = request.files['cover_photo']
+        
+        if cover_photo and cover_photo.filename != '':
+            photo_data = cover_photo.read()  # Read binary data of the file
+
+            # Insert category data into the database
+            db = connect()
+            cursor = db.cursor()
+
+            insert_query = '''
+            INSERT INTO d_categories (category_name, category_cover)
+            VALUES (%s, %s)
+            '''
+            cursor.execute(insert_query, (category_name, photo_data))
+            db.commit()
+            cursor.close()
+            db.close()
+
+            return jsonify({'success': True, 'message': 'Category has been added successfully!'})
+        else:
+            return jsonify({'success': False, 'message': 'Cover photo is required!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+def save_feature(product_id, new_price, feature_description):
+    db = connect()
+    cursor = db.cursor()
+
+    try:
+        # Step 1: Check if product_id exists in the featured table
+        check_query = "SELECT product_id FROM featured WHERE product_id = %s"
+        cursor.execute(check_query, (product_id,))
+        result = cursor.fetchone()  # If product_id exists, result will not be None
+
+        if result:  # If product_id exists, update the record
+            update_query = """
+            UPDATE featured
+            SET new_price = %s, feature_description = %s
+            WHERE product_id = %s
+            """
+            cursor.execute(update_query, (new_price, feature_description, product_id))
+        else:  # If product_id does not exist, insert a new record
+            insert_query = """
+            INSERT INTO featured (product_id, new_price, feature_description)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(insert_query, (product_id, new_price, feature_description))
+
+        # Commit the transaction
+        db.commit()
+
+    except Exception as e:
+        db.rollback()  # Rollback in case of error
+        raise e
+
+    finally:
+        cursor.close()
+        db.close()
+
+
+def save_advertisement(product_id, new_price, offer_type):
+    db = connect()
+    cursor = db.cursor()
+
+    try:
+        # Step 1: Check if product_id exists in the discounts table
+        check_query = "SELECT product_id FROM discounts WHERE product_id = %s"
+        cursor.execute(check_query, (product_id,))
+        result = cursor.fetchone()  # If product_id exists, result will not be None
+        
+        if result:  # If product_id exists, update the record
+            update_query = """
+            UPDATE discounts
+            SET new_price = %s, type_of_offer = %s
+            WHERE product_id = %s
+            """
+            cursor.execute(update_query, (new_price, offer_type, product_id))
+        else:  # If product_id does not exist, insert a new record
+            insert_query = """
+            INSERT INTO discounts (product_id, new_price, type_of_offer)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(insert_query, (product_id, new_price, offer_type))
+
+        # Commit the transaction
+        db.commit()
+
+    except Exception as e:
+        db.rollback()  # Rollback in case of error
+        raise e
+
+    finally:
+        cursor.close()
+        db.close()
+
+
+def save_category(product_id, category_id):
+    db = connect()
+    cursor = db.cursor()
+
+    try:
+        # Step 1: Check if product_id exists in the table
+        check_query = "SELECT product_id FROM categories WHERE product_id = %s"
+        cursor.execute(check_query, (product_id,))
+        result = cursor.fetchone()  # If product_id exists, result will not be None
+        
+        if result:  # Product already exists, so we update
+            update_query = """
+            UPDATE categories
+            SET category_id = %s
+            WHERE product_id = %s
+            """
+            cursor.execute(update_query, (category_id, product_id))
+        else:  # Product doesn't exist, so we insert a new record
+            insert_query = """
+            INSERT INTO categories (product_id, category_id)
+            VALUES (%s, %s)
+            """
+            cursor.execute(insert_query, (product_id, category_id))
+
+        # Commit the transaction after executing the query
+        db.commit()
+
+    except Exception as e:
+        db.rollback()  # Rollback in case of error
+        raise e
+
+    finally:
+        cursor.close()
+        db.close()
+
+
+@app.route('/save-category', methods=['POST'])
+def save_category_route():
+    try:
+        data = request.get_json()
+        product_id = data['product_id']
+        category_id = data['category_id']
+        save_category(product_id, category_id)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({'success': False, 'error': str(e)}), 300
+
+@app.route('/save-advertisement', methods=['POST'])
+def save_advertisement_route():
+    try:
+        data = request.get_json()
+        product_id = data['product_id']
+        new_price = data['advertised_price']
+        offer_type = data['offer_type']
+        
+        save_advertisement(product_id, new_price, offer_type)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        print(str(e))
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/save-feature', methods=['POST'])
+def save_feature_route():
+    try:
+        data = request.get_json()
+        product_id = data['product_id']
+        new_price = data['feature_price']
+        feature_description = data['feature_description']
+        
+        save_feature(product_id, new_price, feature_description)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/editproduct/<int:product_id>', methods=['POST'])
+def edit_product(product_id):
+      # Get form data
+    product_name = request.form.get('product_name')
+    product_price = request.form.get('product_price')
+    product_description = request.form.get('product_description')
+    product_cover = request.files.get('product_cover')  # Get file from the form
+    
+    # Convert the image to blob and save it to the database
+    cover_image_blob = None
+    if product_cover:
+        cover_image_blob = product_cover.read()  # Read image as binary (BLOB)
+    
+    try:
+        # Connect to the database
+        connection = connect()
+        with connection.cursor() as cursor:
+            # SQL query to update the product, including BLOB data for the image
+            sql = """
+            UPDATE products
+            SET product_name = %s, price = %s, description = %s, cover_photo = %s
+            WHERE product_id = %s
+            """
+            cursor.execute(sql, (product_name, product_price, product_description, cover_image_blob, product_id))
+            connection.commit()
+        
+        return jsonify({'success': True, 'message': 'Product updated successfully!'})
+    
+    except Exception as e:
+        print(str(e))
+        return jsonify({'success': False, 'message': str(e)})
+    
+    finally:
+        connection.close()
+
+# Route to delete a product
+@app.route('/deleteproduct/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        # Connect to the database
+        connection = connect()
+        with connection.cursor() as cursor:
+            # SQL query to delete the product
+            sql = "DELETE FROM products WHERE product_id = %s"
+            cursor.execute(sql, (product_id,))
+            connection.commit()
+        
+        return jsonify({'success': True, 'message': 'Product deleted successfully!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+    
+    finally:
+        connection.close()
 
 
 if __name__ == '__main__':
