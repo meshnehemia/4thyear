@@ -12,6 +12,8 @@ import pymysql
 import os
 import json
 from past7daysales import get_sales_past_7_days , get_sales_online_vs_instore,get_sales_last_8_hours,get_total_sales_per_week,get_top_sold_products, monthlyprofit,get_order_status_data
+from dateutil.relativedelta import relativedelta
+from datetime import timedelta
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -589,8 +591,316 @@ def newuser():
     return render_template('newstaff.html')
 
 @app.route('/wmanagement')
-def manageworkers():
-    return render_template('workersmanagement.html')
+def worker_management():
+    # Fetch workers from the database
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM staff")
+    workers = cursor.fetchall()
+
+    # Fetch tasks
+    cursor.execute("SELECT * FROM list_of_tasks")
+    tasks = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('workersmanagement.html', workers=workers, tasks=tasks)
+
+@app.route('/add_task', methods=['POST'])
+def add_task():
+    data = request.json
+    task_description = data.get('task_description')
+    current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO list_of_tasks (task_description, status, staff_id)
+        VALUES (%s, 'not assigned', NULL)
+    """, (task_description,))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Task added successfully'}), 201
+
+@app.route('/assign_task', methods=['POST'])
+def assign_task():
+    data = request.json
+    task_id = data.get('task_id')
+    staff_id = data.get('staff_id')
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE list_of_tasks SET staff_id = %s, status = 'assigned' WHERE task_id = %s", (staff_id, task_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Task assigned successfully'}), 200
+
+# Fetch worker payment details
+@app.route('/worker_payment_details', methods=['GET'])
+def worker_payment_details():
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT s.staff_id, s.name_of_staff, p.monthly_payment, p.payment_date 
+        FROM staff s 
+        JOIN payment p ON s.staff_id = p.staff_id
+    """)
+    payments = cursor.fetchall()
+
+    conn.close()
+
+    return jsonify(payments)
+
+@app.route('/worker_stats', methods=['GET'])
+def worker_stats():
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM staff')
+    total_workers = cursor.fetchone()[0] 
+    cursor.execute('SELECT COUNT(*) FROM staff WHERE status = "active"')
+    active_workers = cursor.fetchone()[0] 
+    cursor.execute('SELECT COUNT(*) FROM staff WHERE status = "inactive"')
+    inactive_workers = cursor.fetchone()[0] 
+    conn.close()
+    return jsonify({
+        'totalWorkers': total_workers,
+        'activeWorkers': active_workers,
+        'inactiveWorkers': inactive_workers
+    })
+
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+    conn = connect()
+    cursor = conn.cursor()  # No dictionary=True here
+    cursor.execute('SELECT * FROM list_of_tasks where status = "not assigned"')
+    tasks = cursor.fetchall()
+    conn.close()
+
+    # Using tuple indexing to extract task_id and task_description
+    task_list = [{'task_id': task[0], 'task_description': task[1]} for task in tasks]  # Adjust the indices as necessary
+    return jsonify(task_list)
+
+@app.route('/workers', methods=['GET'])
+def get_workers():
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM staff')
+    workers = cursor.fetchall()
+    conn.close()
+    worker_list = [{'staff_id': worker[0], 'name_of_staff': worker[1]} for worker in workers]
+    return jsonify(worker_list)
+
+@app.route('/api/task_list', methods=['GET'])
+def task_list():
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM list_of_tasks')
+    tasks = cursor.fetchall()
+    conn.close()
+    task_list = [{'task_id': task[0],
+                  'task_description': task[1],
+                  'status': task[2],
+                  'created': task[4],
+                  'completed':task[5],
+                  'assigned_worker': getworkername(task[3])} for task in tasks]
+    return jsonify(task_list)
+def getworkername(staff_id):
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name_of_staff FROM staff where staff_id = %s', (staff_id,))
+    name = cursor.fetchone()
+    return name[0] if name else "No worker assigned"
+
+@app.route('/api/mark_task_completed/<int:task_id>', methods=['POST'])
+def mark_task_completed(task_id):
+    conn = connect()
+    completion_date = datetime.now()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE list_of_tasks SET status = "completed", date_completed = %s  WHERE task_id = %s', (completion_date,task_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Task marked as completed'})
+
+
+@app.route('/api/staff_details', methods=['GET'])
+def staff_details():
+    conn = connect()
+    cursor = conn.cursor()
+
+    # Query to get all staff details along with the number of tasks they completed, salary, and level
+    cursor.execute("""
+        SELECT s.staff_id, s.name_of_staff, s.date_employed, 
+               COUNT(t.task_id) AS tasks_completed, s.status, 
+               s.level, p.payment_per_level AS salary 
+        FROM staff s
+        LEFT JOIN list_of_tasks t ON s.staff_id = t.staff_id AND t.status = 'completed'
+        LEFT JOIN payment_amount p ON s.level = p.level
+        GROUP BY s.staff_id
+    """)
+    staff = cursor.fetchall()
+    
+    # Prepare the data in the response format
+    staff_list = [{
+        'staff_id': staff_member[0],
+        'name_of_staff': staff_member[1],
+        'date_employed': staff_member[2],
+        'tasks_completed': staff_member[3],
+        'status': staff_member[4],
+        'level': staff_member[5],
+        'salary': staff_member[6],
+    } for staff_member in staff]
+
+    conn.close()
+    return jsonify(staff_list)
+
+
+@app.route('/fire_staff', methods=['POST'])
+def fire_staff():
+    data = request.json
+    staff_id = data.get('staff_id')
+
+    conn = connect()
+    cursor = conn.cursor()
+
+    # Fetch current level and status of the staff member
+    cursor.execute("SELECT level, status FROM staff WHERE staff_id = %s", (staff_id,))
+    staff = cursor.fetchone()
+
+    if staff and staff[1] != 'fired':  # Only proceed if the staff is not already fired
+        # Set status to 'fired' and level to 'Junior-fired'
+        cursor.execute("UPDATE staff SET status = 'fired', level = CONCAT(level, '-fired') WHERE staff_id = %s", (staff_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Staff member fired successfully'}), 200
+    else:
+        return jsonify({'message': 'Staff member is already fired'}), 400
+
+@app.route('/promote_staff', methods=['POST'])
+def promote_staff():
+    data = request.json
+    staff_id = data.get('staff_id')
+
+    conn = connect()
+    cursor = conn.cursor()
+
+    # Fetch current level and status
+    cursor.execute("SELECT level, status FROM staff WHERE staff_id = %s", (staff_id,))
+    staff = cursor.fetchone()
+    print(staff)
+    print(staff_id)
+    if staff:
+        current_level = staff[0]
+        current_status = staff[1]
+        print(staff_id)
+        # If the staff member is fired, reemploy them at their last level (before '-fired')
+        if current_status == 'fired':
+            original_level = current_level.split('-')[0]  # Remove '-fired' suffix
+            cursor.execute("UPDATE staff SET status = 'active', level = %s WHERE staff_id = %s", (original_level, staff_id))
+            conn.commit()
+            conn.close()
+            return jsonify({'message': f'Staff member reemployed to their original level: {original_level}'}), 200
+    
+        # Define possible levels and promotion logic
+        levels = ['Junior', 'Senior', 'Manager', 'Director', 'CEO']
+        if current_level in levels:
+            current_index = levels.index(current_level)
+            if current_index < len(levels) - 1:
+                new_level = levels[current_index + 1]
+                cursor.execute("UPDATE staff SET level = %s WHERE staff_id = %s", (new_level, staff_id))
+                conn.commit()
+                conn.close()
+                return jsonify({'message': f'Staff member promoted to {new_level}'}), 200
+            else:
+                return jsonify({'message': 'This staff member is at the highest level'}), 400
+    return jsonify({'message': 'Staff member not found!!'}), 404
+
+@app.route('/api/staff_payment_details', methods=['GET'])
+def staff_payment_details():
+    conn = connect()
+    cursor = conn.cursor()
+
+    # Fetch staff payment details
+    cursor.execute("""
+        SELECT s.staff_id, 
+       s.name_of_staff, 
+       pa.payment_per_level, 
+       s.date_employed,
+       COALESCE(SUM(p.monthly_payment), 0) as total_paid,
+       MAX(p.payment_date) as latest_payment
+        FROM staff s
+        LEFT JOIN payment p ON s.staff_id = p.staff_id
+        LEFT JOIN payment_amount pa ON pa.level = s.level
+        GROUP BY s.staff_id;
+    """)
+    staff_members = cursor.fetchall()
+    conn.close()
+    current_date = datetime.now()
+    staff_details = []
+
+    for staff in staff_members:
+        staff_id, name_of_staff, salary, date_employed, total_paid, latest_payment = staff
+
+        # Calculate the days remaining to the end of the current month
+        end_of_month = (current_date.replace(day=1) + relativedelta(months=1)) - timedelta(seconds=1)
+        days_remaining = (end_of_month - current_date).days
+
+        staff_details.append({
+            'staff_id': staff_id,
+            'name_of_staff': name_of_staff,
+            'salary': salary,
+            'total_paid': total_paid,
+            'latest_payment': latest_payment,
+            'days_remaining': days_remaining
+        })
+    return jsonify(staff_details)
+
+@app.route('/demote_staff', methods=['POST'])
+def demote_staff():
+    data = request.json
+    staff_id = data.get('staff_id')
+
+    conn = connect()
+    cursor = conn.cursor()
+
+    # Fetch current level and status
+    cursor.execute("SELECT level, status FROM staff WHERE staff_id = %s", (staff_id,))
+    staff = cursor.fetchone()
+
+    if staff:
+        current_level = staff[0]
+        current_status = staff[1]
+
+        # If staff is fired, demotion is not allowed
+        if current_status == 'fired':
+            return jsonify({'message': 'This staff member is fired and cannot be demoted'}), 400
+
+        # Define possible levels and demotion logic
+        levels = ['Junior', 'Senior', 'Manager', 'Director', 'CEO']
+        if current_level in levels:
+            current_index = levels.index(current_level)
+            if current_index > 0:
+                new_level = levels[current_index - 1]
+                cursor.execute("UPDATE staff SET level = %s WHERE staff_id = %s", (new_level, staff_id))
+                conn.commit()
+                conn.close()
+                return jsonify({'message': f'Staff member demoted to {new_level}'}), 200
+            else:
+                return jsonify({'message': 'This staff member is at the lowest level'}), 400
+    return jsonify({'message': 'Staff member not found'}), 404
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/ordersmanagement')
 def listoforders():
@@ -866,6 +1176,64 @@ def delete_product(product_id):
     
     finally:
         connection.close()
+
+
+def add_staff(data):
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+
+        # Check if the email exists in the 'users' table
+        email = data['email_address']
+        cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+        result = cursor.fetchone()
+
+        if result:
+            # If email exists, get the user_id
+            user_id = result[0]
+
+            # Check if the user_id already exists in the 'staff' table
+            cursor.execute("SELECT staff_id FROM staff WHERE staff_id = %s", (user_id,))
+            staff_result = cursor.fetchone()
+
+            if staff_result:
+                # If staff_id already exists, return an error message
+                return {"status": "error", "message": "Staff member already exists."}
+
+            # If the staff_id doesn't exist, insert the new staff member
+            insert_query = """
+            INSERT INTO staff (staff_id, name_of_staff, phone_number, email_address, level, date_employed, status, id_number)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                user_id,
+                data['name_of_staff'],
+                data['phone_number'],
+                data['email_address'],
+                data['level'],
+                data['date_employed'],
+                data['status'],
+                data['id_number']
+            ))
+            conn.commit()
+            return {"status": "success", "message": "Staff member added successfully."}
+
+        else:
+            # Email does not exist
+            return {"status": "error", "message": "Email not found. Please register on the platform first."}
+
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route("/add_staff", methods=["POST"])
+def add_staff_route():
+    print("okey")
+    data = request.get_json()
+    response = add_staff(data)
+    return jsonify(response)
+
 
 
 if __name__ == '__main__':

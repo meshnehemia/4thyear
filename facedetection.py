@@ -40,6 +40,10 @@ def detect_face(img):
 def genandface(id):
     connection = connect()
     cursor = connection.cursor()
+    cursor.execute("SELECT * from tinitiation where user_id = %s ",(id,))
+    if cursor.fetchone():
+        cursor.execute('DELETE FROM tinitiation where user_id  = %s',(id,))
+        connection.commit();
     insert_query = """
     INSERT INTO tinitiation (user_id, status)
     VALUES (%s, %s);

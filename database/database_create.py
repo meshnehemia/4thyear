@@ -179,6 +179,57 @@ try:
     cursor.execute(orders)
     print("Table 'orders' created successfully.")
 
+
+    tasks='''CREATE TABLE IF NOT EXISTS list_of_tasks (
+    task_id INT AUTO_INCREMENT PRIMARY KEY,  -- Unique identifier for each task
+    task_description TEXT NOT NULL,          -- Description of the task
+    status ENUM('not assigned', 'assigned', 'completed') DEFAULT 'not assigned',  -- Task status with default value 'not assigned'
+    staff_id BIGINT UNSIGNED,                            -- Foreign key referencing the staff member assigned to the task
+    date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Automatically sets the date when the task is created
+    date_completed TIMESTAMP NULL,           -- Date when the task is completed, nullable
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)  -- Foreign key linking to the staff table
+);
+'''
+    cursor.execute(tasks)
+    print("Table 'tasks' created successfully.")
+
+
+    payments = '''CREATE TABLE IF NOT EXISTS payment (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,  -- Auto-incrementing primary key for each payment
+    staff_id BIGINT UNSIGNED NOT NULL,          -- Foreign key referencing the staff member
+    monthly_payment DECIMAL(10, 2) NOT NULL,    -- The payment amount for the staff member
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp of when the payment is recorded
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)  -- Foreign key linking to the staff table
+);
+
+
+'''
+    cursor.execute(payments)
+    print("Table 'payments' created successfully.")
+
+
+    pay ='''CREATE TABLE IF NOT EXISTS payment_amount (
+    level_id INT AUTO_INCREMENT PRIMARY KEY,  -- Unique identifier for each level payment record
+    level VARCHAR(50) NOT NULL,               -- Staff level (e.g., junior, senior, manager)
+    payment_per_level DECIMAL(10, 2) NOT NULL  -- Payment amount associated with the level
+);
+'''
+    cursor.execute(pay)
+    print("Table 'pay' created successfully.")
+
+
+    ordersales = '''CREATE TABLE IF NOT EXISTS ordersales (
+    order_sales_id INT AUTO_INCREMENT PRIMARY KEY,  -- Unique ID for each record in ordersales
+    order_id INT,                                   -- Foreign key referencing orders table
+    product_id INT,                                 -- Foreign key referencing products table
+    cost DECIMAL(10, 2),                            -- Cost of the product
+    number_of_items INT,                            -- Number of items sold
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,   -- Foreign key relation with orders table
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE  -- Foreign key relation with products table
+);
+'''
+    cursor.execute(ordersales)
+    print("Table 'ordersales' created successfully.")
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
         print("Something is wrong with your user name or password")

@@ -162,6 +162,46 @@
         </div>
     
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector("form");
+    
+            form.addEventListener("submit", function (event) {
+                event.preventDefault(); // Prevent default form submission
+    
+                const formData = new FormData(form);
+                const data = {};
+    
+                formData.forEach((value, key) => {
+                    data[key] = value;
+                });
+    
+                // Send data to backend using fetch API
+                fetch("/add_staff", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === "success") {
+                        alert(result.message);
+                        window.location.href = '/wmanagement';
+                        form.reset();  // Reset form on success
+                    } else {
+                        alert(result.message);  // Show error message
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An error occurred while submitting the form. Please try again.");
+                });
+            });
+        });
+    </script>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

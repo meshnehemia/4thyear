@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Management</title>
+    <title>Worker Management Dashboard</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -130,12 +130,12 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-            <a href="/dashboardAdmin">Dashboard</a>
-            <a href="/ordersmanagement">Orders</a>
-            <a href="/productlists">Manage Products</a>
-            <a href="/wmanagement">Manage Workers</a>
-            <a href="#recognition">Face Recognition</a>
-            <a href="/newuser">Register Users</a>
+        <a href="/dashboardAdmin">Dashboard</a>
+        <a href="/ordersmanagement">Orders</a>
+        <a href="/productlists">Manage Products</a>
+        <a href="/wmanagement">Manage Workers</a>
+        <a href="#recognition">Face Recognition</a>
+        <a href="/newuser">Register Users</a>
     </div>
 
     <!-- Main Content -->
@@ -145,26 +145,27 @@
             <div class="col-md-4 mb-4">
                 <div class="card p-4">
                     <h5>Total Workers</h5>
-                    <h3>25</h3>
+                    <h3 id="total-workers">Loading...</h3>
                 </div>
             </div>
             <div class="col-md-4 mb-4">
                 <div class="card p-4">
                     <h5>Active Workers</h5>
-                    <h3>20</h3>
+                    <h3 id="active-workers">Loading...</h3>
                 </div>
             </div>
             <div class="col-md-4 mb-4">
                 <div class="card p-4">
                     <h5>Inactive Workers</h5>
-                    <h3>5</h3>
+                    <h3 id="inactive-workers">Loading...</h3>
                 </div>
             </div>
         </div>
+
         <!-- Add New Task Section -->
         <div id="add-new-task" class="mb-5">
             <h4>Add New Task</h4>
-            <form>
+            <form id="new-task-form">
                 <div class="row">
                     <div class="col-md-12">
                         <label for="new-task-description">Task Description</label>
@@ -180,24 +181,20 @@
         <!-- Assign Task Section -->
         <div id="assign-tasks" class="mb-5">
             <h4>Assign Task</h4>
-            <form>
+            <form id="assign-task-form">
                 <div class="row">
                     <div class="col-md-6">
                         <label for="task-select">Select Task</label>
                         <select id="task-select" class="form-control">
                             <option>Select a task</option>
-                            <option>Task 1</option>
-                            <option>Task 2</option>
-                            <option>Task 3</option>
+                            <!-- Dynamic task options here -->
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label for="worker-select">Assign to Worker</label>
                         <select id="worker-select" class="form-control">
                             <option>Select a worker</option>
-                            <option>Worker 1</option>
-                            <option>Worker 2</option>
-                            <option>Worker 3</option>
+                            <!-- Dynamic worker options here -->
                         </select>
                     </div>
                     <div class="col-md-12">
@@ -217,39 +214,58 @@
                         <th>Task Description</th>
                         <th>Status</th>
                         <th>Assigned Worker</th>
-                        <th>Action</th>
+                        <th>created</th>
                         <th>Mark as Completed</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Task A</td>
-                        <td><span class="badge status-assigned">Assigned</span></td>
-                        <td>John Doe</td>
-                        <td><button class="btn btn-primary">Reassign</button></td>
-                        <td><button class="btn btn-success">Mark Completed</button></td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Task B</td>
-                        <td><span class="badge status-not-assigned">Not Assigned</span></td>
-                        <td>-</td>
-                        <td><button class="btn btn-primary">Assign</button></td>
-                        <td>-</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>Task C</td>
-                        <td><span class="badge status-assigned">Assigned</span></td>
-                        <td>Jane Smith</td>
-                        <td><button class="btn btn-primary">Reassign</button></td>
-                        <td><button class="btn btn-success">Mark Completed</button></td>
-                    </tr>
+                <tbody id="task-list">
+                    <!-- Dynamic task rows here -->
                 </tbody>
             </table>
         </div>
+        <div id="staff-list" class="mb-5">
+            <h4>Staff Details</h4>
+            <table class="staff-list-table table table-striped">
+                <thead>
+                    <tr>
+                        <th>Staff ID</th>
+                        <th>Name</th>
+                        <th>Date Employed</th>
+                        <th>Tasks Completed</th>
+                        <th>Status</th>
+                        <th>Salary</th>
+                        <th>Promote</th>
+                        <th>Demote</th>
+                        <th>fire</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-details">
+                    <!-- Dynamic staff rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- payment -->
+         <div class="mb-5">
+            <h4>payment details</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Staff ID</th>
+                        <th>Name</th>
+                        <th>Salary</th>
+                        <th>Total Paid</th>
+                        <th>Last Payment</th>
+                        <th>Days Remaining</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-detail">
+                    <!-- Dynamic staff rows will be inserted here -->
+                </tbody>
+            </table>
 
+         </div>
         <!-- Completed Tasks Section -->
         <div id="completed-tasks" class="mb-5">
             <h4>Completed Tasks</h4>
@@ -259,93 +275,380 @@
                         <th>Task ID</th>
                         <th>Task Description</th>
                         <th>Completed By</th>
+                        <th>date created</th>
                         <th>Completion Date</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Task A</td>
-                        <td>John Doe</td>
-                        <td>2025-01-03</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Task C</td>
-                        <td>Jane Smith</td>
-                        <td>2025-01-02</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pay Workers Section -->
-        <div id="pay-workers" class="mb-5">
-            <h4>Monthly Worker Payments</h4>
-            <table class="task-list-table table table-striped">
-                <thead>
-                    <tr>
-                        <th>Worker ID</th>
-                        <th>Name</th>
-                        <th>Task</th>
-                        <th>Amount to Pay</th>
-                        <th>Payment Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>John Doe</td>
-                        <td>Task A</td>
-                        <td>$500</td>
-                        <td><button class="btn btn-success">Pay</button></td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Jane Smith</td>
-                        <td>Task C</td>
-                        <td>$450</td>
-                        <td><button class="btn btn-success">Pay</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Payment Details Section -->
-        <div id="payment-details" class="mb-5">
-            <h4>Payment Details</h4>
-            <table class="task-list-table table table-striped">
-                <thead>
-                    <tr>
-                        <th>Worker ID</th>
-                        <th>Name</th>
-                        <th>Total Amount Paid</th>
-                        <th>Latest Payment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>John Doe</td>
-                        <td>$1500</td>
-                        <td>$500</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Jane Smith</td>
-                        <td>$1300</td>
-                        <td>$450</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>Michael Brown</td>
-                        <td>$1800</td>
-                        <td>$600</td>
-                    </tr>
+                <tbody id="completed-task-list">
+                    <!-- Dynamic completed task rows here -->
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- JavaScript for dynamic functionality -->
+    <script>
+
+async function loadStaffPDetails() {
+    try {
+        const response = await fetch('/api/staff_payment_details');
+        const staffMembers = await response.json();
+        const staffDetails = document.getElementById('staff-detail');
+        staffDetails.innerHTML = ''; // Clear any existing rows
+
+        staffMembers.forEach(staff_details => {
+            
+            const prow = document.createElement('tr');
+            const daysRemaining = staff_details.days_remaining > 0 ? `${staff_details.days_remaining} days` : 'Payment due';
+            // Payment button should be enabled only if the days remaining is 0 or less (payment due)
+            const paymentButtonDisabled = staff_details.days_remaining > 0 ? 'disabled' : '';
+            prow.innerHTML = `
+                <td>${staff_details.staff_id}</td>
+                <td>${staff_details.name_of_staff}</td>
+                <td>ksh ${staff_details.salary}</td>
+                <td>ksh ${staff_details.total_paid}</td>
+                <td>ksh ${staff_details.latest_payment}</td>
+                <td>${daysRemaining}</td>
+                <td><button class="btn btn-success" ${paymentButtonDisabled} onclick="payStaff(${staff_details.staff_id})">Make Payment</button></td>
+            `;
+            
+            staffDetails.appendChild(prow);
+           
+        });
+    } catch (error) {
+        alert('Error fetching staff details:', error);
+    }
+}
+
+// Function to make payment
+async function payStaff(staff_id) {
+    try {
+        const response = await fetch('/pay_staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+
+            // Reload the staff details to update the payment information after a successful payment
+            loadStaffDetails();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error making payment:', error);
+    }
+}
+
+// Load the staff details when the page loads
+loadStaffPDetails();
+
+
+        
+        async function loadStaffDetails() {
+    try {
+        const response = await fetch('/api/staff_details');
+        const staffMembers = await response.json();
+
+        const staffDetails = document.getElementById('staff-details');
+        staffDetails.innerHTML = ''; // Clear any existing rows
+
+        staffMembers.forEach(staff => {
+            const row = document.createElement('tr');
+
+            let promoteButtonText = 'Promote';
+            let demoteButtonText = 'Demote';
+            let fireButtonText = 'Fire';
+            let promoteDisabled = '';
+            let demoteDisabled = '';
+            let fireDisabled = '';
+            let reemployButtonText = '';
+
+            if (staff.status === 'fired') {
+                promoteButtonText = 'Reemploy';
+                promoteDisabled = 'disabled';
+                demoteDisabled = 'disabled';
+                fireButtonText = 'Already Fired';
+                fireDisabled = 'disabled';
+            } else {
+                if (staff.level === 'Junior') {
+                    demoteButtonText = 'Cannot Demote';
+                    demoteDisabled = 'disabled';
+                } else if (staff.level === 'CEO') {
+                    promoteButtonText = 'Cannot Promote';
+                    promoteDisabled = 'disabled';
+                }
+            }
+
+            row.innerHTML = `
+                <td>${staff.staff_id}</td>
+                <td>${staff.name_of_staff}</td>
+                <td>${new Date(staff.date_employed).toLocaleDateString()}</td>
+                <td>${staff.tasks_completed}</td>
+                <td>${staff.status}</td>
+                <td>$${staff.salary}</td>
+                <td><button class="btn btn-success"  onclick="promoteStaff(${staff.staff_id})">${promoteButtonText}</button></td>
+                <td><button class="btn btn-warning" ${demoteDisabled} onclick="demoteStaff(${staff.staff_id})">${demoteButtonText}</button></td>
+                <td><button class="btn btn-danger" ${fireDisabled} onclick="fireStaff(${staff.staff_id})">${fireButtonText}</button></td>
+            `;
+
+            staffDetails.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error fetching staff details:', error);
+    }
+}
+
+async function fireStaff(staff_id) {
+    try {
+        const response = await fetch('/fire_staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id })
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadStaffDetails(); // Reload staff details to reflect changes
+    } catch (error) {
+        console.error('Error firing staff:', error);
+    }
+}
+
+async function promoteStaff(staff_id) {
+    try {
+        const response = await fetch('/promote_staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id })
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadStaffDetails(); // Reload staff details to reflect changes
+    } catch (error) {
+        console.error('Error promoting staff:', error);
+    }
+}
+
+async function demoteStaff(staff_id) {
+    try {
+        const response = await fetch('/demote_staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id })
+        });
+        const result = await response.json();
+        alert(result.message);
+        loadStaffDetails(); // Reload staff details to reflect changes
+    } catch (error) {
+        console.error('Error demoting staff:', error);
+    }
+}
+
+loadStaffDetails();  // Load the staff details when the page loads
+
+
+        // Fetch worker stats
+        async function fetchWorkerStats() {
+            try {
+                const response = await fetch('/worker_stats');
+                const data = await response.json();
+                document.getElementById('total-workers').textContent = data.totalWorkers;
+                document.getElementById('active-workers').textContent = data.activeWorkers;
+                document.getElementById('inactive-workers').textContent = data.inactiveWorkers;
+            } catch (error) {
+                console.error('Error fetching worker stats:', error);
+            }
+        }
+
+        // Fetch tasks for task assignment
+        async function fetchTasks() {
+            try {
+                const response = await fetch('/tasks');
+                const tasks = await response.json();
+                const taskSelect = document.getElementById('task-select');
+                taskSelect.innerHTML="";
+                tasks.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.task_id;
+                    option.textContent = task.task_description;
+                    taskSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+            }
+        }
+
+        // Fetch workers for task assignment
+        async function fetchWorkers() {
+            try {
+                const response = await fetch('/workers');
+                const workers = await response.json();
+                const workerSelect = document.getElementById('worker-select');
+                workers.forEach(worker => {
+                    const option = document.createElement('option');
+                    option.value = worker.staff_id;
+                    option.textContent = worker.name_of_staff;
+                    workerSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching workers:', error);
+            }
+        }
+
+        // Fetch tasks and populate task list
+        async function fetchTaskList() {
+            try {
+                    const response = await fetch('/api/task_list');
+                    const tasks = await response.json();
+                    const taskList = document.getElementById('task-list');
+                    taskList.innerHTML ="";
+                    const completedTaskList = document.getElementById('completed-task-list');
+                    completedTaskList.innerHTML = '';
+                    tasks.forEach(task => {
+                        // Skip completed tasks from the list
+                        if (task.status === 'completed') {
+                            const crow = document.createElement('tr');
+                            crow.innerHTML = `
+                                <td>${task.task_id}</td>
+                                <td>${task.task_description}</td>
+                                <td>${task.assigned_worker}</td>
+                                <td>${task.created}</td>
+                                <td>${task.completed}</td>
+                            `;
+                            completedTaskList.appendChild(crow);
+                            return;
+                        }
+
+                        const row = document.createElement('tr');
+                        
+                        // Create the table row
+                        row.innerHTML = `
+                            <td>${task.task_id}</td>
+                            <td>${task.task_description}</td>
+                            <td>${task.status}</td>
+                            <td>${task.assigned_worker}</td>
+                            <td>${task.created}</td>
+                            <td>
+                                <button class="btn btn-success" onclick="markTaskCompleted(${task.task_id})" ${task.status === 'completed' ? 'disabled' : ''}>
+                                    Complete
+                                </button>
+                            </td>
+                        `;
+                        
+                        taskList.appendChild(row);
+                    });
+                } catch (error) {
+                    console.error('Error fetching task list:', error);
+                }
+        }
+
+        // Mark task as completed
+        async function markTaskCompleted(taskId) {
+            try {
+                await fetch(`/api/mark_task_completed/${taskId}`, { method: 'POST' });
+                alert('Task completed successfully');
+                fetchTaskList();  // Refresh the task list after completion
+            } catch (error) {
+                console.error('Error marking task as completed:', error);
+            }
+        }
+
+        // Initialize functions on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchWorkerStats();
+            fetchTasks();
+            fetchWorkers();
+            fetchTaskList();
+        });
+
+
+
+        async function handleAssignTask(event) {
+        event.preventDefault();  // Prevent the form from submitting the usual way
+        
+        const taskSelect = document.getElementById('task-select');
+        const workerSelect = document.getElementById('worker-select');
+        
+        const task_id = taskSelect.value;  // Get selected task ID
+        const staff_id = workerSelect.value;  // Get selected worker ID
+        
+        // Make sure both task and worker are selected
+        if (!task_id || !staff_id) {
+            alert('Please select a task and a worker.');
+            return;
+        }
+        
+        try {
+            // Make a POST request to the backend to assign the task
+            const response = await fetch('/assign_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    task_id: task_id,
+                    staff_id: staff_id
+                })
+            });
+
+            const data = await response.json();
+            fetchTaskList();
+            fetchTasks();
+            alert(data.message);  // Show success message
+        } catch (error) {
+            console.error('Error assigning task:', error);
+            alert('Error assigning task');
+        }
+    }
+
+    // Function to handle the form submission for adding a new task
+    async function handleAddTask(event) {
+        event.preventDefault();  // Prevent the form from submitting the usual way
+        
+        const taskDescription = document.getElementById('new-task-description').value;
+        
+        // Ensure the description is provided
+        if (!taskDescription) {
+            alert('Please enter a task description.');
+            return;
+        }
+        
+        try {
+            // Make a POST request to the backend to add the new task
+            const response = await fetch('/add_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    task_description: taskDescription
+                })
+            });
+
+            const data = await response.json();
+            alert(data.message);  // Show success message
+            // Optionally, reset the form after submission
+            fetchTaskList();
+            fetchTasks();
+            document.getElementById('new-task-form').reset();
+        } catch (error) {
+            console.error('Error adding task:', error);
+            alert('Error adding task');
+        }
+    }
+
+
+    // Add event listener to form for task assignment
+    window.onload = function() {
+        const form = document.getElementById('assign-task-form');
+        form.addEventListener('submit', handleAssignTask);
+        const form2 = document.getElementById('new-task-form');
+        form2.addEventListener('submit', handleAddTask);
+    };
+    </script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
