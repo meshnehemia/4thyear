@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .mychild {
+                transition: max-height 0.5s ease, opacity 0.5s ease;
+                overflow: hidden;
+                opacity: 1;
+            }
+
+            .hidden-child {
+                max-height: 0;
+                opacity: 0;
+            }
+
+        .sidebar {
+            height: 100%;
+            width: 220px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #343a40;
+            padding-top: 20px;
+            z-index: 1;
+        }
+
+        .sidebar a {
+            padding: 15px;
+            text-decoration: none;
+            font-size: 18px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            background-color: #080808;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .work-list {
+            margin-top: 20px;
+        }
+
+        .work-item {
+            background-color: #ffffff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .done-btn {
+            background-color: green;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .done-btn:hover {
+            background-color: darkgreen;
+        }
+
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .payment-section {
+            margin-top: 40px;
+        }
+
+        .submit-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+
+        .dashboard-nav {
+            background-color: #343a40;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-nav a {
+            color: white;
+            margin-right: 15px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .dashboard-nav a:hover {
+            color: #ccc;
+        }
+
+        .graph-container {
+            margin-top: 40px;
+        }
+
+        .chat-log {
+            background-color: #e9ecef;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .chat-entry {
+            background-color: #ffffff;
+            padding: 8px 15px;
+            margin-bottom: 10px;
+            border-radius: 20px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-entry.me {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+        }
+
+        .chat-entry.me .chat-message {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .chat-entry .date {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        /* Hide sections by default except the graph section */
+        .section {
+            display: none;
+        }
+
+        #workGraphSection {
+            display: block;
+        }
+        .task-dashboard {
+            width: 100%;
+            height: 30%;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background-color: #f0f4f8;
+        }
+        .tasks {
+            width: 25%;
+            background-color: #f8f9fa; /* Light background color for each task */
+            border: 0.5px  rgb(70, 70, 73);
+            border-radius: 10px; /* Rounded corners */
+            padding: 20px;
+            box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 25px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s; /* Smooth hover effect */
+        }
+
+        .tasks:hover {
+            transform: translateY(-5px); /* Slight lift on hover */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Increased shadow on hover */
+        }
+        
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="#dashboard" onclick="showSection('workGraphSection')">Dashboard</a>
+        <a href="#list-workers" onclick="showSection('completedTasksSection')">Completed Tasks</a>
+        <a href="#assign-orders" onclick="showSection('assignedTasksSection')">Assigned Tasks</a>
+        <a href="#completed-orders" onclick="showSection('availableTasksSection')">Available Tasks</a>
+        <a href="#pay-workers" onclick="showSection('paymentSection')">Payment Processing</a>
+    </div>
+    <div class="container">
+        <h2 class="text-center mb-4">Worker Dashboard & Payment</h2>
+        <div class="mt-4">
+            <ul class="task-dashboard">
+                <li class="tasks" onclick="showSection('availableTasksSection')">Available Tasks: <strong id="availableTasksCount">{{ tasks.completed + tasks.assigned + tasks.pending  }}</strong></li>
+                <li class="tasks" onclick="showSection('assignedTasksSection')">Assigned Tasks: <strong id="assignedTasksCount">{{ tasks.assigned }}</strong></li>
+                <li class="tasks" onclick="showSection('completedTasksSection')">Completed Tasks: <strong id="completedTasksCount">{{ tasks.completed }}</strong></li>
+                <li class="tasks" onclick="showSection('completedTasksSection')">pending Tasks: <strong id="completedTasksCount">{{ tasks.pending }}</strong></li>
+            </ul>
+        </div>
+        <!-- Work Done Graph Section (default) -->
+        <div class="card graph-container section" id="workGraphSection">
+            <div class="card-header">
+                Work Done (Every Hour)
+            </div>
+            <div class="card-body">
+                <canvas id="workGraph"></canvas>
+            </div>
+        </div>
+
+        <!-- Assigned Tasks Section -->
+        <div class="work-list section" id="assignedTasksSection">
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#mycompletetasks">tasks assigned:  {{ assignedtasks['counts_of_orders'] }}</h4>
+            {% for task in assignedtasks['availabletasks'] %}
+                <div id="mycompletetasks" class="collapse show work-item">
+                    <p><strong>Task:</strong> {{ task[1] }}</p>
+                    <p>created: {{ task[4] }}</p>
+                    <form method="post" id="completetask">
+                        <input type="text" value="{{task[0]}}" id="task" hidden>
+                        <button type="submit" class="btn btn-success">mark as done</button>
+                    </form>
+                </div>
+            {% endfor %}
+            <script>
+                document.getElementById('completetask').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const order_id = document.getElementById('task').value;
+                const response = await fetch('/wcomplete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        task_id: order_id, 
+                    })
+                });
+                const result = await response.json();
+                alert("completed successfully");
+                    location.reload();
+
+                });
+            </script>
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#othercompleteorders">orders assigned : {{ assignedorders['available_counts'] }}</h4>
+            {% for task in assignedorders['available_orders'] %}
+                <div id="othercompleteorders" onclick="toggleChildassigned(event)">
+                <div  class="work-item">
+                    <p><strong>name</strong> {{ task['name'] }} <strong>username: </strong>{{ task['username'] }}</p>
+                    <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
+                    <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
+                    <p class="btn btn-success">mark as done</p>
+                </div>
+                <div class="hidden-child">
+                    <div class="container">
+                        {% for item in task['order_info']['order_details'] %}
+                                <div class="d-flex m-4">
+                                    <img src="{{ url_for('productsphoto', product_id= item[7]) }}" width="35%" alt="Product Image">
+                                    <div class="m-5">
+                                        <p><strong>Product Name:</strong> {{ item[8] }}</p>
+                                        <p><strong>Description:</strong> {{ item[9] }}</p>
+                                        <p><strong>Number of Items:</strong> {{ item[5] }}</p>
+                                        <p><strong>Price per Item:</strong> ${{ item[6]/item[5] }} </p>
+                                        <p><strong>Total for Product:</strong> ${{ item[6] }}</p>
+                                        <p class="btn btn-success packed" id="packedBtn" onclick="this.innerHTML='<strong>Packed</strong>'"><strong>mark as packed</strong></p>
+
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <div class="bg-success p-4 m-4">
+                                <p class="text-center"><strong>Total Cost: ${{ task['order_info']['total_sum'] }}</strong></p>
+                            </div>
+
+                    </div> 
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Completed Tasks Section -->
+        <div class="work-list section" id="completedTasksSection">
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#mycompletetasks">my completed tasks:  {{ completetasks['count_with_staff'] }}</h4>
+            {% for task in completetasks['with_staff'] %}
+                <div id="mycompletetasks" class="collapse show work-item">
+                    <p><strong>Task:</strong> {{ task[1] }}</p>
+                    <p>created: {{ task[4] }}</p>
+                    <p>completed on: {{ task[5] }}</p>
+                    <p class="btn btn-success"><strong>Status:</strong> Done</p>
+                </div>
+            {% endfor %}
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#othercompletetasks">other complete tasks: {{ completetasks['count_without_staff'] }}</h4>
+            {% for task in completetasks['without_staff'] %}
+            <div id="othercompletetasks" class="collapse show work-item">
+                    <p><strong>Task:</strong> {{ task[1] }}</p>
+                    <p>completed by :  {{ task[7] }} phone no: {{ task[8] }} email: {{ task[9] }}</p>
+                    <p> created :  {{ task[4] }}</p>
+                    <p>completed on:  {{ task[5] }}</p>
+                    <p class="btn btn-success"><strong>Status:</strong> Done</p>
+            </div>
+            {% endfor %}
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#mycompleteorders">my complete orders:  {{ completedorders['count_with_worker'] }}</h4>
+            {% for task in completedorders['orders_with_worker'] %}
+                <div id="mycompleteorders" onclick="toggleChild(event)">
+                    <div  class="work-item">
+                        <p><strong>name</strong> {{ task['name'] }} <strong>username: </strong>{{ task['username'] }}</p>
+                        <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
+                        <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
+                        <p class="btn btn-success"><strong>Status:</strong> Done</p>
+                    </div>
+                    <div class="container hidden-child m-4">
+                        {% for item in task['order_info']['order_details'] %}
+                            <div class="d-flex m-4">
+                                <img src="{{ url_for('productsphoto', product_id= item[7]) }}" width="35%" alt="Product Image">
+                                <div class="m-5">
+                                    <p><strong>Product Name:</strong> {{ item[8] }}</p>
+                                    <p><strong>Description:</strong> {{ item[9] }}</p>
+                                    <p><strong>Number of Items:</strong> {{ item[5] }}</p>
+                                    <p><strong>Price per Item:</strong> ${{ item[6]/item[5] }} </p>
+                                    <p><strong>Total for Product:</strong> ${{ item[6] }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    <div class="bg-success p-4">
+                        <p class="text-center"><strong>Total Cost: ${{ task['order_info']['total_sum'] }}</strong></p>
+                    </div>
+                    </div>
+                </div>
+            {% endfor %}
+                <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#othercompleteorders">others Completed Tasks orders: {{ completedorders['count_without_worker'] }}</h4>
+            {% for task in completedorders['orders_without_worker'] %}
+                <div id="othercompleteorders" onclick="toggleChild(event)">
+                <div  class="work-item">
+                    <p><strong>name</strong> {{ task['name'] }} <strong>username: </strong>{{ task['username'] }}</p>
+                    <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
+                    <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
+                    <p><strong>served by : {{ task['name_of_staff'] }}   , phone no: {{ task['phone_number'] }} ,email: {{ 'email_address'}} </strong></p>
+                    <p class="btn btn-success"><strong>Status:</strong> Done</p>
+                </div>
+                <div class="hidden-child">
+                    <div class="container">
+                        {% for item in task['order_info']['order_details'] %}
+                                <div class="d-flex m-4">
+                                    <img src="{{ url_for('productsphoto', product_id= item[7]) }}" width="35%" alt="Product Image">
+                                    <div class="m-5">
+                                        <p><strong>Product Name:</strong> {{ item[8] }}</p>
+                                        <p><strong>Description:</strong> {{ item[9] }}</p>
+                                        <p><strong>Number of Items:</strong> {{ item[5] }}</p>
+                                        <p><strong>Price per Item:</strong> ${{ item[6]/item[5] }} </p>
+                                        <p><strong>Total for Product:</strong> ${{ item[6] }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <div class="bg-success p-4 m-4">
+                                <p class="text-center"><strong>Total Cost: ${{ task['order_info']['total_sum'] }}</strong></p>
+                            </div>
+
+                    </div> 
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Available Tasks Section -->
+        <div class="work-list section" id="availableTasksSection">
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#mycompletetasks">available tasks:  {{ availabletasks['counts_of_orders'] }}</h4>
+            {% for task in availabletasks['availabletasks'] %}
+                <div id="mycompletetasks" class="collapse show work-item">
+                    <p><strong>Task:</strong> {{ task[1] }}</p>
+                    <p>created: {{ task[4] }}</p>
+                    <form action="" method="post" id="assigntask">
+                        <input type="text" value="{{ task[0]}}" hidden id="order_id">
+                        <button class="btn btn-success" type="submit">take the task</button>
+                    </form>
+                    
+                </div>
+            {% endfor %}
+            <h4 class="section-title btn-success p-4 Rounded" data-bs-toggle="collapse" data-bs-target="#othercompleteorders">orders available : {{ availableorders['available_counts'] }}</h4>
+            {% for task in availableorders['available_orders'] %}
+                <div id="othercompleteorders" onclick="toggleChild(event)">
+                <div  class="work-item">
+                    <p><strong>name</strong> {{ task['name'] }} <strong>username: </strong>{{ task['username'] }}</p>
+                    <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
+                    <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
+                    <form method="POST" id="order_form">
+                        <input type="text" value="{{ task['order_id'] }}"  id="orderid">
+                        <button type="submit" class="btn btn-success">take order</button>
+                    </form>
+                    <script>
+                        document.getElementById('order_form').addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            
+                            const order_id = document.getElementById('orderid').value;
+                            try {
+                                const response = await fetch('/wassignorder', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        task_id: order_id,
+                                    })
+                                });
+                    
+                                const result = await response.json();
+                    
+                                // Assuming result has a "success" field
+                                alert("got the job ");
+                                
+                                // Refresh the page
+                                location.reload();
+                            } catch (error) {
+                                console.error('Error:', error);
+                            }
+                        });
+                    </script>
+                    
+                    
+                </div>
+                <div class="hidden-child">
+                    <div class="container">
+                        {% for item in task['order_info']['order_details'] %}
+                                <div class="d-flex m-4">
+                                    <img src="{{ url_for('productsphoto', product_id= item[7]) }}" width="35%" alt="Product Image">
+                                    <div class="m-5">
+                                        <p><strong>Product Name:</strong> {{ item[8] }}</p>
+                                        <p><strong>Description:</strong> {{ item[9] }}</p>
+                                        <p><strong>Number of Items:</strong> {{ item[5] }}</p>
+                                        <p><strong>Price per Item:</strong> ${{ item[6]/item[5] }} </p>
+                                        <p><strong>Total for Product:</strong> ${{ item[6] }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <div class="bg-success p-4 m-4">
+                                <p class="text-center"><strong>Total Cost: ${{ task['order_info']['total_sum'] }}</strong></p>
+                            </div>
+
+                    </div> 
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Payment Section -->
+        <div class="card payment-section section" id="paymentSection">
+            <div class="card-header">
+                Payment Processing
+            </div>
+            <div class="card-body">
+                <form id="paymentForm" style="display: flex;">
+                    <video id="video" autoplay playsinline></video>
+                    <div style="display: block; padding: 30px;">
+                        <div class="form-group mb-3">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" class="form-control" required>
+                            <div id="emailError" class="error"></div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="phone">Phone Number</label>
+                            <input type="text" id="phone" class="form-control" required>
+                            <div id="phoneError" class="error"></div>
+                        </div>
+                        
+                        <form action="">
+                            <label for="">enter serial number:</label>
+                            <input type="text" name="" id="">
+                            <button class="btn btn-success"> search </button>
+                        </form>
+                        <button type="submit" class="submit-btn btn btn-success" style="position: absolute; bottom: 0;">Submit Payment</button>
+                    
+                    </div>
+                    
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript and Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            // Show the selected section
+            document.getElementById(sectionId).style.display = 'block';
+            if (sectionId === 'paymentSection') {
+    const video = document.getElementById('video');
+    let stream; // Declare stream variable
+
+    // Request access to the user's camera
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(function(newStream) {
+            stream = newStream;  // Store the new stream
+            video.srcObject = stream;
+            video.play();
+            sendFrameToBackend();
+        }).catch(function(error) {
+            console.error("Camera access error:", error);
+            alert("Unable to access camera.");
+        });
+    } else {
+        alert("Camera not supported by your browser.");
+    }
+
+    // Function to send camera feed to backend for processing
+    function sendFrameToBackend() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        // Every 100ms, capture the current frame and send it to the backend
+        setInterval(() => {
+            if (!stream) return; // Check if the stream is available
+
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw the current video frame to the canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert the canvas image to a data URL (base64 encoded image)
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            // Send the image data to the backend
+            fetch('/process-frame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: imageData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => {
+                console.error("Error sending frame to backend:", error);
+            });
+        }, 100);  // Capture every 100 milliseconds (adjust for performance)
+    }
+
+} else {
+    // Stop the camera feed
+    // if (stream) {
+    //     stream.getTracks().forEach(track => track.stop()); // Stop all video tracks
+    //     video.srcObject = null;
+    //     alert("Camera stopped.");
+    // }
+}
+        }
+
+        // Chart.js code for work graph
+        const ctx = document.getElementById('workGraph').getContext('2d');
+        const workGraph = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM'],
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: [1, 3, 5, 7, 4, 2],
+                    borderColor: 'rgba(0, 123, 255, 0.7)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Payment form validation and submission
+        const paymentForm = document.getElementById('paymentForm');
+        paymentForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            // Payment form validation logic
+            let valid = true;
+            const username = document.getElementById('username').value;
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            if (username === '') {
+                document.getElementById('usernameError').textContent = 'Username is required';
+                valid = false;
+            } else {
+                document.getElementById('usernameError').textContent = '';
+            }
+
+            if (fullname === '') {
+                document.getElementById('fullnameError').textContent = 'Full Name is required';
+                valid = false;
+            } else {
+                document.getElementById('fullnameError').textContent = '';
+            }
+
+            if (email === '') {
+                document.getElementById('emailError').textContent = 'Email is required';
+                valid = false;
+            } else {
+                document.getElementById('emailError').textContent = '';
+            }
+
+            if (phone === '') {
+                document.getElementById('phoneError').textContent = 'Phone number is required';
+                valid = false;
+            } else {
+                document.getElementById('phoneError').textContent = '';
+            }
+
+            if (password === '') {
+                document.getElementById('passwordError').textContent = 'Password is required';
+                valid = false;
+            } else {
+                document.getElementById('passwordError').textContent = '';
+            }
+
+            if (valid) {
+                alert('Payment Submitted');
+            }
+        });
+
+        function toggleChild(event) {
+        
+    let element =event.currentTarget;
+    console.log(element);
+    if ( element.querySelector('.mychild')) {
+        element.querySelector('.mychild').classList.add('hidden-child');
+        element.querySelector('.hidden-child').classList.remove('mychild');
+    } else {
+        element.querySelector('.hidden-child').classList.add('mychild');
+        element.querySelector('.mychild').classList.remove('hidden-child');
+    }
+}
+function toggleChildassigned(event) {
+        
+        let element =event.currentTarget;
+        
+            element.querySelector('.hidden-child').classList.add('mychild');
+            element.querySelector('.mychild').classList.remove('hidden-child');
+        
+    }
+
+    document.getElementById('assigntask').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const order_id = document.getElementById('order_id').value;
+
+    // Make the POST request to /wassign_task
+    const response = await fetch('/wassign_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            task_id: order_id, // Sending the order_id as task_id in the body
+        })
+    });
+
+    // Handle response
+    const result = await response.json();
+    alert("got the task");
+        location.reload();
+
+    });
+    </script>
+</body>
+
+</html>

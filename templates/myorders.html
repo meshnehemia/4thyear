@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+</html>
+<head>
+    <meta charset="utf-8">
+    <title>Supermarket Inteligent management system</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+    <link href="img/favicon.ico" rel="icon">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">  
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static',filename='lib/animate/animate.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static',filename='lib/owlcarousel/assets/owl.carousel.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static',filename='css/style.css') }}" rel="stylesheet">
+    <style>
+        body {
+            color: #000;
+        }
+        .order-card {
+            background-color: #fff;
+            border: 2px solid #000;
+            margin-bottom: 1rem;
+        }
+        .order-card-header {
+            background-color: #ffeb3b;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .order-card-body {
+            padding: 10px;
+        }
+        .order-status {
+            font-weight: bold;
+            color: #000;
+        }
+        .order-items {
+            display: none;
+        }
+    </style>
+    <script>
+        function toggleOrderItems(orderId) {
+            const items = document.getElementById(orderId);
+            if (items.style.display === "none") {
+                items.style.display = "block";
+            } else {
+                items.style.display = "none";
+            }
+        }
+    </script>
+</head>
+<body>
+    
+    <!-- Topbar -->
+    {% include 'topbar.html' %}
+
+    <!-- Navbar Start -->
+    {% include 'navbar.html' %}
+
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Orders</h1>
+        <!-- Order 1 -->
+        <div class="order-card">
+            <div class="order-card-header" onclick="toggleOrderItems('order1-items')">
+                Order #1 - <span class="order-status">Shipped</span> - Total: $75
+            </div>
+            <div id="order1-items" class="order-items order-card-body">
+                <ul>
+                    <li>Item 1 - $25</li>
+                    <li>Item 2 - $30</li>
+                    <li>Item 3 - $20</li>
+                </ul>
+            </div>
+        </div>
+        <!-- Order 2 -->
+        <div class="order-card">
+            <div class="order-card-header" onclick="toggleOrderItems('order2-items')">
+                Order #2 - <span class="order-status">Processing</span> - Total: $45
+            </div>
+            <div id="order2-items" class="order-items order-card-body">
+                <ul>
+                    <li>Item A - $20</li>
+                    <li>Item B - $25</li>
+                </ul>
+            </div>
+        </div>
+        <!-- Order 3 -->
+        <div class="order-card">
+            <div class="order-card-header" onclick="toggleOrderItems('order3-items')">
+                Order #3 - <span class="order-status">Delivered</span> - Total: $90
+            </div>
+            <div id="order3-items" class="order-items order-card-body">
+                <ul>
+                    <li>Item X - $30</li>
+                    <li>Item Y - $25</li>
+                    <li>Item Z - $35</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Start -->
+    {% include 'footer.html' %}
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
+
+
+    {% include 'scriptsfooter.html' %}
+    
+</body>
+
+</html>

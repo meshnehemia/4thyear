@@ -21,7 +21,7 @@
 
             <!-- Form for Phone Number, Account Password, and Transaction -->
             <div class="col-md-6" id="fvarified" style="display: none;">
-                <form action="/initiate_transaction" method="POST">
+                <form action="{{ url_for('place_order') }}" method="POST" >
                     <div class="form-group">
                         <label for="phoneNumber">Phone Number</label>
                         <input type="tel" class="form-control" id="phoneNumber" name="phone_number" placeholder="Enter your phone number" required>

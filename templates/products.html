@@ -115,6 +115,7 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ product.product_name }}</h5>
                         <p class="card-text">{{ product.description }}</p>
+                        <form class="form"><label for="">available  </label><input type="number" value="29"></form>
                         <h6>Price: ${{ product.price }}</h6>
                         <h6>Featured Price: ${{ product.featured_price if product.featured_price != 'nil' else 'N/A' }}</h6>
                         <h6>Advertised Price: ${{ product.advertised_price if product.advertised_price != 'nil' else 'N/A' }}</h6>

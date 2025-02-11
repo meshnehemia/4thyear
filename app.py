@@ -11,9 +11,11 @@ from database import connect
 import pymysql
 import os
 import json
+from mpesa import send_mpesa_payment
 from past7daysales import get_sales_past_7_days , get_sales_online_vs_instore,get_sales_last_8_hours,get_total_sales_per_week,get_top_sold_products, monthlyprofit,get_order_status_data
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
+from worker import mytasks,completedtasks,completedorders,availableorders,availabletasks,assignedorders,assignedtasks,assigntask,completetask
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
@@ -144,6 +146,7 @@ def feature():
 
 @app.route('/')
 def home():
+    session['user_id'] = 6
     return render_template('index.html')
 
 def calculate_total_cost(carts):
@@ -636,6 +639,19 @@ def assign_task():
     conn.close()
     return jsonify({'message': 'Task assigned successfully'}), 200
 
+
+@app.route('/wassign_task', methods=['POST'])
+def wassign_task():
+    data = request.json
+    task_id = data.get('task_id')
+    return assigntask(task_id)
+
+@app.route('/wcomplete', methods=['POST'])
+def completetasks():
+    data = request.json
+    task_id = data.get('task_id')
+    return completetask(task_id)
+
 # Fetch worker payment details
 @app.route('/worker_payment_details', methods=['GET'])
 def worker_payment_details():
@@ -891,16 +907,217 @@ def demote_staff():
     return jsonify({'message': 'Staff member not found'}), 404
 
 
+@app.route('/api/orders', methods=['GET'])
+def get_orders():
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+
+        # Query to get all orders
+        cursor.execute('''
+            SELECT 
+                o.order_id, o.client_id, o.date_placed, o.status,o.assigned_worker
+            FROM orders o
+        ''')
+
+        orders = cursor.fetchall()
+
+        response = {
+            'orders': []
+        }
+
+        for order in orders:
+            order_id, client_id, date_placed, status , worker= order
+            response['orders'].append({
+                'order_id': order_id,
+                'client_id': get_user_email(client_id),
+                'date_placed': date_placed.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': status,
+                'status_class': get_status_class(status),
+                'assigned_worker': get_staffname(worker) # Assuming no workers assigned yet
+            })
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Helper function to map order status to CSS classes
+def get_status_class(status):
+    if status == 'Pending':
+        return 'status-pending'
+    elif status == 'Completed':
+        return 'status-completed'
+    elif status == 'Assigned':
+        return 'status-assigned'
+    else:
+        return 'status-unknown'
+
+
+@app.route('/api/orders/<int:order_id>/assign', methods=['POST'])
+def assign_worker(order_id):
+    try:
+        worker_id = request.json.get('worker')
+        conn = connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE orders
+            SET assigned_worker = %s, status = "assigned"
+            WHERE order_id = %s
+        ''', (worker_id, order_id))
+
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/wassignorder', methods=['POST'])
+def assignorders():
+    data = request.json
+    order_id = data.get('task_id')
+    worker_id = 1
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE orders
+            SET assigned_worker = %s, status = "assigned"
+            WHERE order_id = %s
+        ''', (worker_id, order_id))
+
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 
+def get_user_email(user_id):
+    try:
+        conn = connect()  # Your database connection function
+        cursor = conn.cursor()
 
+        # Query to get the email for a specific user ID
+        cursor.execute('''
+            SELECT email 
+            FROM users 
+            WHERE user_id = %s
+        ''', (user_id,))
 
+        result = cursor.fetchone()
 
+        cursor.close()
+        conn.close()
 
+        if result:
+            return result[0]  # Return the email
+        else:
+            return None  # User ID not found
 
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
+def get_staffname(staff_id):
+    try:
+        conn = connect()  # Your database connection function
+        cursor = conn.cursor()
 
+        # Query to get the email for a specific user ID
+        cursor.execute('''
+            SELECT name_of_staff 
+            FROM staff 
+            WHERE staff_id = %s
+        ''', (staff_id,))
+
+        result = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if result:
+            return result[0]  # Return the email
+        else:
+            return None  # User ID not found
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+@app.route('/placeorder',methods=['POST'])
+def place_order():
+    send_mpesa_payment()
+    user_id = session['session_id']
+    conn = connect()
+    if conn is None:
+        return "Could not connect to the database", 500
+    try:
+        cursor = conn.cursor()
+
+        # Step 1: Get all products from the user's cart
+        query_cart = '''SELECT product_id, number_of_items FROM Cart WHERE user_id = %s'''
+        cursor.execute(query_cart, (user_id,))
+        cart_items = cursor.fetchall()  # This gets all the products in the user's cart
+
+        if not cart_items:
+            return "No items in cart to place an order", 400
+
+        # Step 2: Insert into the orders table with 'assigned_worker' as NULL and status as 'Pending'
+        query_order = '''INSERT INTO orders (client_id, status, assigned_worker)
+                         VALUES (%s, 'Pending', NULL)'''
+        cursor.execute(query_order, (user_id,))
+        order_id = cursor.lastrowid  # Get the last inserted order_id
+
+        # Step 3: For each item in the cart, insert into the ordersales and sales tables
+        for item in cart_items:
+            product_id = item[0]
+            number_of_items = item[1]
+
+            # Get product price from Products table to calculate total cost
+            query_product = '''SELECT price FROM Products WHERE product_id = %s'''
+            cursor.execute(query_product, (product_id,))
+            product = cursor.fetchone()
+            cost = float(product[0]) * float(number_of_items)
+
+            # Insert into ordersales
+            query_ordersales = '''INSERT INTO ordersales (order_id, product_id, cost, number_of_items)
+                                  VALUES (%s, %s, %s, %s)'''
+            cursor.execute(query_ordersales, (order_id, product_id, cost, number_of_items))
+
+            # Insert into sales table (optional, if you want to track individual product sales)
+            query_sales = '''INSERT INTO sales (product_id, client_id, sale_type, amount_bought, profit_made)
+                             VALUES (%s, %s, 'online', %s, %s)'''
+            profit_made = cost * 0.1  # Assuming a 10% profit margin, adjust as necessary
+            cursor.execute(query_sales, (product_id, user_id, cost, profit_made))
+
+        # Step 4: Clear the user's cart
+        query_clear_cart = '''DELETE FROM Cart WHERE user_id = %s'''
+        cursor.execute(query_clear_cart, (user_id,))
+
+        # Commit all the changes
+        conn.commit()
+
+        print("Order placed successfully!")
+        return redirect(url_for('home'))
+
+    except Exception as e:
+        conn.rollback()  # In case of error, rollback the transaction
+        print(str(e))
+        return "Error placing order", 500
+    finally:
+        conn.close()
 
 @app.route('/ordersmanagement')
 def listoforders():
@@ -1234,7 +1451,14 @@ def add_staff_route():
     response = add_staff(data)
     return jsonify(response)
 
+@app.route("/myorders")
+def myorders():
+    return render_template('myorders.html')
 
+@app.route("/workersdaskboard")
+def listoftasks():
+    tasks = mytasks()
+    return render_template('workers.html', tasks= tasks['tasks'],completetasks= completedtasks() ,completedorders=completedorders(), availableorders=availableorders(),availabletasks=availabletasks(),assignedorders=assignedorders(),assignedtasks=assignedtasks())
 
 if __name__ == '__main__':
     app.run(debug=True)

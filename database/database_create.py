@@ -172,7 +172,9 @@ try:
     client_id INT NOT NULL,
     date_placed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NOT NULL,
+    assigned_worker BIGINT UNSIGNED,
     FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (assigned_worker) REFERENCES staff(staff_id)
 );
 '''
 
@@ -228,6 +230,12 @@ try:
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE  -- Foreign key relation with products table
 );
 '''
+
+#     changemodel = '''ALTER TABLE orders ADD COLUMN assigned_worker VARCHAR(255);
+# '''
+#     cursor.execute(changemodel)
+#     conn.commit()
+    print("Table 'orders' altered successfully.")
     cursor.execute(ordersales)
     print("Table 'ordersales' created successfully.")
 except mysql.connector.Error as err:
