@@ -6,7 +6,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6 pb-1">
             <div class="product-item bg-light mb-4">
                 <div class="product-img position-relative overflow-hidden">
-                    <img class="img-fluid w-100" src="{{ url_for('productsphoto', product_id=id) }}" alt="">
+                    <img class="img-fluid w-100" src="{{ url_for('productsphoto', product_id=id) }}" alt="" style="max-height: 300px; min-height: 300px;">
                     <div class="product-action">
                         <button class="btn btn-outline-dark btn-square" value="{{ id }}" onclick="addValue(this)" ><i class="fa fa-shopping-cart"></i></button>
                     </div>

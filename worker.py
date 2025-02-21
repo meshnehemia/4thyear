@@ -7,24 +7,25 @@ from datetime import datetime
 def mytasks():
     conn = connect()
     cursor = conn.cursor()
-    # Query for tasks
+    worker_id = 1
     query_tasks = """
     SELECT 
-        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'completed') AS completed_tasks,
-        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'pending') AS pending_tasks,
-        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'assigned') AS assigned_tasks
+        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'completed' AND staff_id = %s) AS completed_tasks,
+        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'pending' AND staff_id = %s) AS pending_tasks,
+        (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'assigned' AND staff_id = %s) AS assigned_tasks
     """
-    cursor.execute(query_tasks)
+    cursor.execute(query_tasks, (worker_id,worker_id,worker_id))
+
     task_counts = cursor.fetchone()
 
     # Query for orders
     query_orders = """
     SELECT 
-        (SELECT COUNT(*) FROM orders WHERE status = 'completed') AS completed_orders,
-        (SELECT COUNT(*) FROM orders WHERE status = 'pending') AS pending_orders,
-        (SELECT COUNT(*) FROM orders WHERE status = 'assigned') AS assigned_orders
+        (SELECT COUNT(*) FROM orders WHERE status = 'completed' AND assigned_worker =%s) AS completed_orders,
+        (SELECT COUNT(*) FROM orders WHERE status = 'pending' AND assigned_worker = %s) AS pending_orders,
+        (SELECT COUNT(*) FROM orders WHERE status = 'assigned' AND assigned_worker = %s) AS assigned_orders
     """
-    cursor.execute(query_orders)
+    cursor.execute(query_orders,(worker_id,worker_id,worker_id))
     order_counts = cursor.fetchone()
 
     # Return results as JSON

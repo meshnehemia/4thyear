@@ -18,7 +18,7 @@
                                 <p class="mx-md-5 px-5 animate__animated animate__bounceIn">{{ description}}</p>
                                 <h6 class="text-white text-uppercase ">Save {{(((price - new_price) / price) * 100 ) | int }} %</h6>
                                 <h6 class="bg-warning p-3"><span><del>{{ price }}</del></span> <span>now  {{ new_price }}</span></h6>
-                                <a class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp" href="#">Shop Now</a>
+                                <button class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp"  value="{{ id }}" onclick="addValue(this)">Shop Now</button>
                             </div>
                         </div>
                     </div>
@@ -31,7 +31,7 @@
                                 <p class="mx-md-5 px-5 animate__animated animate__bounceIn">{{ description }}</p>
                                 <h6 class="text-white text-uppercase">Save {{(((price - new_price) / price) * 100 ) | int }} %</h6>
                                 <h6><span><del>{{ price }}</del></span> <span>now  {{ new_price }}</span></h6>
-                                <a class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp" href="#">Shop Now</a>
+                                <button class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp"  value="{{ id }}" onclick="addValue(this)" >Shop Now</button>
                             </div>
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                                 <p class="mx-md-5 px-5 animate__animated animate__bounceIn">{{ description }}</p>
                                 <h6 class="text-white text-uppercase">Save {{(((price - new_price) / price) * 100 ) | int }} %</h6>
                                 <h6><span><del>{{ price }}</del></span> <span>now  {{ new_price }}</span></h6>
-                                <a class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp" href="#">Shop Now</a>
+                                <button  value="{{ id }}" onclick="addValue(this)" class="btn btn-outline-light py-2 px-4 mt-3 animate__animated animate__fadeInUp" >Shop Now</button>
                             </div>
                         </div>
                     </div>
@@ -64,7 +64,7 @@
                         <h6 class="text-white text-uppercase">Save {{(((price - new_price) / price) * 100 ) | int }} %</h6>
                         <h6><span><del>{{ price }}</del></span> <span>now  {{ new_price }}</span></h6>
                         <h3 class="text-white mb-3">{{ tp_offer }}</h3>
-                        <a href="" class="btn btn-primary">Shop Now {{ loop.index }}</a>
+                        <button  value="{{ id }}" onclick="addValue(this)" class="btn btn-primary">Shop Now {{ loop.index }}</button>
                     </div>
                 </div>
             {%endif%}
@@ -72,3 +72,24 @@
         </div>
     </div>
 </div>
+<script>
+    function addValue(button) {
+        var data = button.value;
+        fetch('/acart', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)  // Convert the JavaScript object to a JSON string
+        })
+        .then(response => response.json())  // Parse the JSON response from the server
+        .then(data => {
+            alert(data.message);
+        })
+        .catch((error) => {
+            console.log(error);
+            alert(error);
+        });
+        
+    }
+</script>

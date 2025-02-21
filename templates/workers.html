@@ -50,6 +50,7 @@
 
         .container {
             margin-top: 30px;
+            margin-right: 50px;
         }
 
         .card-header {
@@ -267,7 +268,11 @@
                     <p><strong>name</strong> {{ task['name'] }} <strong>username: </strong>{{ task['username'] }}</p>
                     <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
                     <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
-                    <p class="btn btn-success">mark as done</p>
+                    <form method="POST" id="complete_orderform">
+                        <input type="text" value="{{ task['order_id'] }}"  id="orderid" hidden>
+                        <button type="submit" class="btn btn-success">order complete</button>
+                    </form>
+                    
                 </div>
                 <div class="hidden-child">
                     <div class="container">
@@ -293,6 +298,30 @@
                     </div>
                 </div>
             {% endfor %}
+            <script>
+                document.getElementById('complete_orderform').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const order_id = document.getElementById('orderid').value;
+                    try {
+                        const response = await fetch('/wcompleteorder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                task_id: order_id,
+                            })
+                        });
+            
+                        const result = await response.json();
+                        alert("order complete");
+                        location.reload();
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            </script>
         </div>
 
         <!-- Completed Tasks Section -->
@@ -400,7 +429,7 @@
                     <p><strong>phone: </strong> {{ task['phonenumber'] }} <strong>email: </strong> {{ task['email'] }}</p>
                     <p><strong>date placed: </strong>{{ task['date_placed'] }}</p>
                     <form method="POST" id="order_form">
-                        <input type="text" value="{{ task['order_id'] }}"  id="orderid">
+                        <input type="text" value="{{ task['order_id'] }}"  id="orderid" hidden>
                         <button type="submit" class="btn btn-success">take order</button>
                     </form>
                     <script>
@@ -479,15 +508,94 @@
                         </div>
                         
                         <form action="">
-                            <label for="">enter serial number:</label>
-                            <input type="text" name="" id="">
+                            <label for="result">enter serial number:</label>
+                            <input type="text" name="result" id="result">
                             <button class="btn btn-success"> search </button>
                         </form>
-                        <button type="submit" class="submit-btn btn btn-success" style="position: absolute; bottom: 0;">Submit Payment</button>
+                        <button type="submit" class="submit-btn btn btn-success" >Submit Payment</button>
                     
                     </div>
                     
                 </form>
+            </div>
+            <div class="container-fluid">
+                <div class="row px-xl-5">
+                    <div class="col-lg-8 table-responsive mb-5">
+                        <table class="table table-light table-borderless table-hover text-center mb-0">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Products</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody class="align-middle">
+                                {% if cart %}
+                                {% for item in cart %}
+                                <tr>
+                                        <td class="align-middle"> <a href="#"></a><img src="{{ url_for('productsphoto', product_id= item[2]) }}" alt="" style="width: 50px;"> {{ item[1] }} </a></td>
+                                        {% set prices = [item[3]] %} <!-- Add original price -->
+                                        {% if item[4] %} <!-- Check if featured price exists -->
+                                            {% set prices = prices + [item[4]] %}
+                                        {% endif %}
+                                        {% if item[5] %} <!-- Check if discount price exists -->
+                                            {% set prices = prices + [item[5]] %}
+                                        {% endif %}
+            
+                                        <!-- Find the minimum price -->
+                                        {% set best_price = prices | min %}
+            
+                                        <!-- Display the smallest price -->
+                                        
+                                        <td class="align-middle">ksh {{ best_price }}</td>
+                                        <td class="align-middle">
+                                            <div class="input-group quantity mx-auto" style="width: 100px;">
+                                                <div class="input-group-btn">
+                                                    <button class="btn btn-sm btn-primary btn-minus"   value="{{ item[2] }}" onclick="reduceValue(this)">
+                                                    <i class="fa fa-minus"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="text" class="form-control form-control-sm bg-secondary border-0 text-center" value="{{ item[6] }}">
+                                                <div class="input-group-btn">
+                                                    <button class="btn btn-sm btn-primary btn-plus"  value="{{ item[2] }}" onclick="addValue(this)">
+                                                        <i class="fa fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle"> ksh {{ best_price * item[6] }}</td>
+                                        <td class="align-middle"><button class="btn btn-sm btn-danger" value="{{ item[2] }}" onclick="deleteproduct(this)"><i class="fa fa-times"></i></button></td>
+                                    </a>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="bg-light p-30 mb-5">
+                            <div class="border-bottom pb-2">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <h6>Subtotal</h6>
+                                    <h6>ksh {{ total }}</h6>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="font-weight-medium">Shipping</h6>
+                                    <h6 class="font-weight-medium">ksh 0 </h6>
+                                </div>
+                            </div>
+                            <div class="pt-2">
+                                <div class="d-flex justify-content-between mt-2">
+                                    <h5>Total</h5>
+                                    <h5> ksh {{ total }} </h5>
+                                </div>
+                                <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="window.location.href='{{ url_for('paymentdetails') }}'">paid cash</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -496,105 +604,136 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        function showSection(sectionId) {
-            // Hide all sections
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(section => {
-                section.style.display = 'none';
+        
+        const resultDiv = document.getElementById("result");
+
+function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    // Show the selected section
+    document.getElementById(sectionId).style.display = 'block';
+
+    if (sectionId === 'paymentSection') {
+        const video = document.getElementById('video');
+        let stream; // Declare stream variable
+
+        // Request access to the user's camera
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(function(newStream) {
+                stream = newStream;  // Store the new stream
+                video.srcObject = stream;
+                video.play();
+                video.onloadedmetadata = () => {
+                    // Ensure canvas is the correct size once the video is ready
+                    captureFrame();
+                };
+            }).catch(function(error) {
+                console.error("Camera access error:", error);
+                alert("Unable to access camera.");
             });
-            // Show the selected section
-            document.getElementById(sectionId).style.display = 'block';
-            if (sectionId === 'paymentSection') {
-    const video = document.getElementById('video');
-    let stream; // Declare stream variable
+        } else {
+            alert("Camera not supported by your browser.");
+        }
 
-    // Request access to the user's camera
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true }).then(function(newStream) {
-            stream = newStream;  // Store the new stream
-            video.srcObject = stream;
-            video.play();
-            sendFrameToBackend();
-        }).catch(function(error) {
-            console.error("Camera access error:", error);
-            alert("Unable to access camera.");
-        });
-    } else {
-        alert("Camera not supported by your browser.");
-    }
-
-    // Function to send camera feed to backend for processing
-    function sendFrameToBackend() {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-
-        // Every 100ms, capture the current frame and send it to the backend
-        setInterval(() => {
-            if (!stream) return; // Check if the stream is available
-
-            // Set canvas size to match video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // Draw the current video frame to the canvas
+        // Function to send camera feed to backend for processing
+        function captureFrame() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth || 640;  // Fallback width if video width is not available
+            canvas.height = video.videoHeight || 480;  // Fallback height if video height is not available
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Convert the canvas image to a data URL (base64 encoded image)
+            // Get the base64 string of the image
             const imageData = canvas.toDataURL('image/jpeg');
 
-            // Send the image data to the backend
-            fetch('/process-frame', {
+            // Send the image to the server
+            fetch('/process_frame', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    image: imageData
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log(data);
+                if (data.found_products && data.found_products.length > 0) {
+                    alert("confirm: " + data.found_products);
+                }
             })
             .catch(error => {
-                console.error("Error sending frame to backend:", error);
+                console.error("Error sending frame to server:", error);
+                resultDiv.innerHTML = "Error processing the image.";
             });
-        }, 100);  // Capture every 100 milliseconds (adjust for performance)
-    }
-
-} else {
-    // Stop the camera feed
-    // if (stream) {
-    //     stream.getTracks().forEach(track => track.stop()); // Stop all video tracks
-    //     video.srcObject = null;
-    //     alert("Camera stopped.");
-    // }
-}
         }
+
+        // Capture frames every 1 second (1000ms)
+        setInterval(captureFrame, 1000);
+    }
+}
+
 
         // Chart.js code for work graph
         const ctx = document.getElementById('workGraph').getContext('2d');
-        const workGraph = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM'],
-                datasets: [{
+
+// Function to retrieve data from Flask backend
+async function fetchWorkData() {
+    const response = await fetch('/get_work_data');
+    const data = await response.json();
+    
+    const labels = [];
+    const tasksData = [];
+    const ordersData = [];
+
+    // Generate labels and data for the past 7 hours
+    for (let i = 0; i <= 6; i++) {
+        const hour = (new Date().getHours() - 6 + i) % 24;
+        labels.push(`${hour}:00`);
+        tasksData.push(data[hour]?.tasks || 0);
+        ordersData.push(data[hour]?.orders || 0);
+    }
+
+    // Create the chart
+    const workGraph = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
                     label: 'Tasks Completed',
-                    data: [1, 3, 5, 7, 4, 2],
+                    data: tasksData,
                     borderColor: 'rgba(0, 123, 255, 0.7)',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
                     borderWidth: 2,
                     fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+                }//,
+                // {
+                //     label: 'Orders Completed',
+                //     data: ordersData,
+                //     borderColor: 'rgba(255, 99, 132, 0.7)',
+                //     backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                //     borderWidth: 2,
+                //     fill: true
+                // }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
                 }
             }
-        });
+        }
+    });
+}
+
+// Fetch work data
+fetchWorkData(); 
 
         // Payment form validation and submission
         const paymentForm = document.getElementById('paymentForm');

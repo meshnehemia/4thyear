@@ -124,6 +124,23 @@ def productsphoto(product_id):
 def show_topadvertised():
     return {'advertised': topadvertised()}
 
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT product_id AS id, product_name AS name, description, price FROM products")
+    products = cursor.fetchall()
+
+    for product in products:
+        product['image']= url_for('productsphoto', product_id=product['id'])
+        # Add oldPrice dynamically or leave it None
+        product['oldPrice'] = None  # Old price is optional or calculated as needed
+        product['rating'] = round(3.5 + (5.0 - 3.5) * (cursor.rowcount / 10), 1)  # Example random rating for demo
+
+    return jsonify(products)
+
+
 # featured products 
 def featured():
     conn = connect()
@@ -1002,6 +1019,30 @@ def assignorders():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/wcompleteorder', methods=['POST'])
+def completeorder():
+    data = request.json
+    order_id = data.get('task_id')
+
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE orders
+            SET status = "completed"
+            WHERE order_id = %s
+        ''', (order_id,))
+
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 
 
 def get_user_email(user_id):
@@ -1059,7 +1100,7 @@ def get_staffname(staff_id):
 @app.route('/placeorder',methods=['POST'])
 def place_order():
     send_mpesa_payment()
-    user_id = session['session_id']
+    user_id = 1
     conn = connect()
     if conn is None:
         return "Could not connect to the database", 500
@@ -1459,6 +1500,112 @@ def myorders():
 def listoftasks():
     tasks = mytasks()
     return render_template('workers.html', tasks= tasks['tasks'],completetasks= completedtasks() ,completedorders=completedorders(), availableorders=availableorders(),availabletasks=availabletasks(),assignedorders=assignedorders(),assignedtasks=assignedtasks())
+
+
+
+@app.route('/get_work_data', methods=['GET'])
+def get_work_data():
+    # Check if worker_id is in the session (example hardcoded)
+    worker_id = 1  # You can replace this with session['worker_id'] if using sessions
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Query for tasks completed, pending, and assigned in the past 7 hours
+    now = datetime.now()
+    past_7_hours = now - timedelta(hours=7)
+    
+    # Query for tasks
+    query_tasks = """
+    SELECT HOUR(date_completed) as hour, COUNT(*) AS count, status 
+    FROM list_of_tasks 
+    WHERE staff_id = %s AND date_completed >= %s
+    GROUP BY hour, status
+    """
+    cursor.execute(query_tasks, (worker_id, past_7_hours))
+    task_data = cursor.fetchall()
+
+    # Initialize hourly data for tasks
+    hourly_data = {}
+
+    for record in task_data:
+        hour = record['hour']
+        count = record['count']
+        status = record['status']
+
+        if hour not in hourly_data:
+            hourly_data[hour] = {'tasks': 0}
+
+        # Update the task count for the corresponding hour
+        hourly_data[hour]['tasks'] += count
+
+    # Fill missing hours with 0 tasks
+    for hour in range(now.hour - 6, now.hour + 1):
+        if hour not in hourly_data:
+            hourly_data[hour] = {'tasks': 0}
+    
+    # Return the tasks data as JSON
+    return jsonify(hourly_data)
+
+import cv2
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
+
+
+def get_all_products():
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)  # Get results as dictionaries
+    query = "SELECT product_id, product_name, description, price FROM products"
+    cursor.execute(query)
+    return cursor.fetchall()
+
+@app.route('/process_frame', methods=['POST'])
+def process_frame():
+    results = get_all_products()
+    try:
+        # Check if the request has image data
+        if 'image' not in request.json:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        data = request.get_json()
+        img_data = data.get('image')
+
+        # Decode the base64 string
+        img_data = img_data.split(',')[1]  # Remove the base64 prefix (data:image/jpeg;base64, ...)
+        img_bytes = base64.b64decode(img_data)
+        img_array = np.frombuffer(img_bytes, dtype=np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return jsonify({'error': 'Image processing failed'}), 500
+
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Use Tesseract to extract text from the image
+        text = pytesseract.image_to_string(gray)
+
+        product_ids_to_check = [str(product['product_id']) for product in results]
+
+        # Check for the product IDs in the OCR extracted text
+        found_products = []
+        for product_id in product_ids_to_check:
+            # found= [product_id in text.lower()]
+            # print(text)
+            # print(product_id)
+            # print(found)
+            if product_id in text.lower():
+                product = next((p for p in results if str(p['product_id']) == product_id), None)
+                if product:
+                    found_products=(product['product_name'])
+                    return jsonify({'found_products': found_products})
+
+        # Return the found product names as a JSON response
+        return jsonify({'found_products': ''})
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
