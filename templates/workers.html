@@ -506,17 +506,56 @@
                             <input type="text" id="phone" class="form-control" required>
                             <div id="phoneError" class="error"></div>
                         </div>
-                        
-                        <form action="">
-                            <label for="result">enter serial number:</label>
-                            <input type="text" name="result" id="result">
-                            <button class="btn btn-success"> search </button>
-                        </form>
                         <button type="submit" class="submit-btn btn btn-success" >Submit Payment</button>
                     
                     </div>
+                    </form>
+                        
+                        <form id="serialNumberForm">
+                            <label for="result">Enter Serial Number:</label>
+                            <input type="number" name="result" id="result" class="form-control" required>
+                            <button class="btn btn-success mt-3">Search</button>
+                        </form>
+                        <script>
+                            // Function to call the API and pass the serial number
+                            function checkSerialNumber(serialNumber) {
+                                // API endpoint (replace with your actual URL)
+                                const apiUrl = `/checkSerialNumber?serial_number=${serialNumber}`;
                     
-                </form>
+                                // Perform the GET request
+                                fetch(apiUrl, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    }
+                                })
+                                .then(response => response.json())  // Parse the JSON response
+                                .then(data => {
+                                    if (data.product) {
+                                        // If product is found, alert the product details
+                                        alert(`Product found: ${JSON.stringify(data.product)}`);
+                                    } else if (data.error) {
+                                
+                                        // If there is an error (e.g., product not found), alert the error message
+                                        alert(`Error: ${data.error}`);
+                                    }
+                                })
+                                .catch(error => {
+                                    // Handle any network or fetch errors
+                                    alert(`Error: ${error.message}`);
+                                });
+                            }
+                            // Add event listener to handle form submission
+                            document.getElementById('serialNumberForm').addEventListener('submit', function(event) {
+                                event.preventDefault();  // Prevent the form from submitting in the traditional way
+
+                                // Get the serial number from the input field
+                                const serialNumber = document.getElementById('result').value;
+
+                                // Call the function to search for the serial number
+                                checkSerialNumber(serialNumber);
+                            });
+                        </script>
             </div>
             <div class="container-fluid">
                 <div class="row px-xl-5">
@@ -662,8 +701,9 @@ function showSection(sectionId) {
                 return response.json();
             })
             .then(data => {
-                if (data.found_products && data.found_products.length > 0) {
-                    alert("confirm: " + data.found_products);
+                console.log(data.found_products);
+                if (data.found_products || data.found_products.length > 0) {
+                    alert("confirm: " + data.found_products.product_name);
                 }
             })
             .catch(error => {

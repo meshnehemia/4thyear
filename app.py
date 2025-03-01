@@ -1550,7 +1550,6 @@ import cv2
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
 
-
 def get_all_products():
     conn = connect()
     cursor = conn.cursor(dictionary=True)  # Get results as dictionaries
@@ -1583,9 +1582,8 @@ def process_frame():
 
         # Use Tesseract to extract text from the image
         text = pytesseract.image_to_string(gray)
-
         product_ids_to_check = [str(product['product_id']) for product in results]
-
+        print(text)
         # Check for the product IDs in the OCR extracted text
         found_products = []
         for product_id in product_ids_to_check:
@@ -1596,9 +1594,7 @@ def process_frame():
             if product_id in text.lower():
                 product = next((p for p in results if str(p['product_id']) == product_id), None)
                 if product:
-                    found_products=(product['product_name'])
-                    return jsonify({'found_products': found_products})
-
+                    return jsonify({'found_products': product}), 200
         # Return the found product names as a JSON response
         return jsonify({'found_products': ''})
     except Exception as e:
@@ -1606,6 +1602,27 @@ def process_frame():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@app.route('/checkSerialNumber', methods=['GET'])
+def check_serial_number():
+    # Get the serial number from the query parameters
+    serial_number = request.args.get('serial_number')
+
+    if not serial_number:
+        return jsonify({'error': 'Serial number not provided'}), 400  # Return error if serial number is missing
+
+    # Convert serial_number to integer to match product_id type in the data
+    try:
+        serial_number = int(serial_number)
+    except ValueError:
+        return jsonify({'error': 'Invalid serial number format'}), 400  # Return error if serial number is invalid
+
+    # Search for the product with matching product_id
+    product = next((p for p in get_all_products() if p['product_id'] == serial_number), None)
+
+    if product:
+        return jsonify({'product': product}), 200  # Return the product if found
+    else:
+        return jsonify({'error': 'Product not found'}), 404  # Return error if no product is found
 
 if __name__ == '__main__':
     app.run(debug=True)
