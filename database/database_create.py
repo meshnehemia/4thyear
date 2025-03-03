@@ -173,7 +173,7 @@ try:
     date_placed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     assigned_worker BIGINT UNSIGNED,
-    FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (client_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_worker) REFERENCES staff(staff_id)
 );
 '''
@@ -238,6 +238,27 @@ try:
     print("Table 'orders' altered successfully.")
     cursor.execute(ordersales)
     print("Table 'ordersales' created successfully.")
+
+    availableitems ='''CREATE TABLE IF NOT EXISTS availableItemNumber (
+    product_id INT,
+    number_of_items INT NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
+);
+'''
+
+    cursor.execute(availableitems)
+    print("table availabe items created sucessfully")
+
+    orderself = '''CREATE TABLE IF NOT EXISTS selforders (
+    staff_id BIGINT UNSIGNED NOT NULL,
+    product_id INT NOT NULL,
+    number_of_items INT NOT NULL,
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
+);
+'''
+    cursor.execute(orderself)
+    print("table orderself successfully created")
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
         print("Something is wrong with your user name or password")

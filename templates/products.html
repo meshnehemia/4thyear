@@ -115,7 +115,11 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ product.product_name }}</h5>
                         <p class="card-text">{{ product.description }}</p>
-                        <form class="form"><label for="">available  </label><input type="number" value="29"></form>
+                        <form class="form">
+                            <label for="available_{{ product.product_id }}">Available</label>
+                            <input type="number" id="available_{{ product.product_id }}" data-product-id="{{ product.product_id }}" value="">
+                            <p id="timer_{{ product.product_id }}" style="color: green;"></p>
+                        </form>
                         <h6>Price: ${{ product.price }}</h6>
                         <h6>Featured Price: ${{ product.featured_price if product.featured_price != 'nil' else 'N/A' }}</h6>
                         <h6>Advertised Price: ${{ product.advertised_price if product.advertised_price != 'nil' else 'N/A' }}</h6>
@@ -168,6 +172,80 @@
                 </div>
             </div>
             {% endfor %}
+            <script>
+                // Function to fetch the item count for a specific product ID and update its input field
+                function fetchItemCount(productId, inputElement) {
+                    fetch(`/get_item_count/${productId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update the input field with the number of items, or 0 if not found
+                            inputElement.value = data.number_of_items || 0;
+                        })
+                        .catch(error => {
+                            console.error(`Error fetching item count for product ${productId}:`, error);
+                        });
+                }
+            
+                // Iterate through all input fields with a data-product-id attribute
+                document.addEventListener('DOMContentLoaded', function () {
+                    const inputs = document.querySelectorAll('input[data-product-id]');
+                    inputs.forEach(input => {
+                        const productId = input.getAttribute('data-product-id');
+                        fetchItemCount(productId, input);
+                    });
+                });
+
+                // Timer and update function
+                function startCountdown(inputElement, productId, numberOfItems) {
+                    let countdown = 5;
+                    const timerElement = document.getElementById(`timer_${productId}`);
+
+                    // Update the timer every second
+                    const intervalId = setInterval(() => {
+                        timerElement.textContent = `Updating in ${countdown} seconds...`;
+                        countdown--;
+
+                        if (countdown < 0) {
+                            // Stop the countdown and call the update function when it reaches 0
+                            clearInterval(intervalId);
+                            timerElement.textContent = "Updating now...";
+
+                            // Call the backend to update the number of items
+                            updateItemCount(productId, numberOfItems, timerElement);
+                        }
+                    }, 1000);
+                }
+
+                // Function to update the number of items via fetch
+                function updateItemCount(productId, numberOfItems, timerElement) {
+                    fetch(`/updateNumber?product_id=${productId}&number_of_items=${numberOfItems}`, {
+                        method: 'GET'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        timerElement.textContent = "Updated successfully!";
+                    })
+                    .catch(error => {
+                        timerElement.textContent = "Failed to update!";
+                        console.error("Error updating item count:", error);
+                    });
+                }
+
+                // Add event listeners to all input elements
+                document.addEventListener('DOMContentLoaded', function() {
+                    const inputs = document.querySelectorAll('input[data-product-id]');
+                    inputs.forEach(input => {
+                        input.addEventListener('change', function() {
+                            const productId = input.getAttribute('data-product-id');
+                            const numberOfItems = input.value;
+
+                            // Start the countdown
+                            startCountdown(input, productId, numberOfItems);
+                        });
+                    });
+                });
+            </script>
+            
         </div>
     </div>
 

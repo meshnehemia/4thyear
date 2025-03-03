@@ -537,6 +537,12 @@ def productdetails(product_id):
         images = cursor.fetchall()
 
         if not images:
+            images_query = '''
+            SELECT cover_photo FROM Products WHERE product_id = %s;
+            '''
+            cursor.execute(images_query, (product_id,))
+            images = cursor.fetchall()
+            images_list = [base64.b64encode(image[0]).decode('utf-8') for image in images]
             return render_template('detail.html', product=product_item, images=images_list)
         images_list = [base64.b64encode(image[0]).decode('utf-8') for image in images]
 
@@ -1584,8 +1590,6 @@ def process_frame():
         text = pytesseract.image_to_string(gray)
         product_ids_to_check = [str(product['product_id']) for product in results]
         print(text)
-        # Check for the product IDs in the OCR extracted text
-        found_products = []
         for product_id in product_ids_to_check:
             # found= [product_id in text.lower()]
             # print(text)
@@ -1594,7 +1598,8 @@ def process_frame():
             if product_id in text.lower():
                 product = next((p for p in results if str(p['product_id']) == product_id), None)
                 if product:
-                    return jsonify({'found_products': product}), 200
+                    result = insert_selforder(session['staff_id'], product['product_id'], 1)
+                    return jsonify({'found_products': product['product_name'] + " " + result}), 200
         # Return the found product names as a JSON response
         return jsonify({'found_products': ''})
     except Exception as e:
@@ -1604,6 +1609,7 @@ def process_frame():
 
 @app.route('/checkSerialNumber', methods=['GET'])
 def check_serial_number():
+    session['staff_id'] = 1;
     # Get the serial number from the query parameters
     serial_number = request.args.get('serial_number')
 
@@ -1620,9 +1626,225 @@ def check_serial_number():
     product = next((p for p in get_all_products() if p['product_id'] == serial_number), None)
 
     if product:
-        return jsonify({'product': product}), 200  # Return the product if found
+        result = insert_selforder(session['staff_id'], product['product_id'], 1)
+        return jsonify({'product': product['product_name'] + " " + result}), 200  # Return the product if found
     else:
         return jsonify({'error': 'Product not found'}), 404  # Return error if no product is found
+@app.route('/updateNumber', methods=['GET'])
+def insert_or_update_item():
+    product_id = request.args.get('product_id')
+    number_of_items = request.args.get('number_of_items')
+
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+        query = """
+        INSERT INTO availableItemNumber (product_id, number_of_items)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE number_of_items = VALUES(number_of_items);
+        """
+        values = (product_id, number_of_items)
+        cursor.execute(query, values)
+        conn.commit()
+        print(f"Product ID {product_id} updated with {number_of_items} items.")
+        return jsonify({"status": "success", "message": "Item count updated successfully."})
+
+    except Exception as error:
+        print(f"Failed to insert or update record: {error}")
+        return jsonify({"status": "error", "message": "Failed to update item count."})
+
+    finally:
+        # Close the cursor and connection
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+
+def get_item_count(product_id):
+    connection = connect()
+    cursor = connection.cursor()
+    query = "SELECT number_of_items FROM availableItemNumber WHERE product_id = %s"
+    cursor.execute(query, (product_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    if result:
+        return result[0]
+    return 0 
+
+@app.route('/get_item_count/<int:product_id>', methods=['GET'])
+def get_item_count_route(product_id):
+    item_count = get_item_count(product_id)
+    return jsonify({'number_of_items': item_count})
+
+
+def insert_selforder(staff_id, product_id, number_of_items):
+    try:
+        # Establish a database connection
+        conn = connect()
+        cursor = conn.cursor()
+
+        # First, check if the combination of staff_id and product_id exists
+        check_query = """
+        SELECT * FROM selforders WHERE staff_id = %s AND product_id = %s
+        """
+        cursor.execute(check_query, (staff_id, product_id))
+        result = cursor.fetchone()
+
+        if result:
+            update_query = """
+            UPDATE selforders 
+            SET number_of_items = number_of_items + 1
+            WHERE staff_id = %s AND product_id = %s
+            """
+            values = (staff_id, product_id)
+
+            # Execute the query
+            cursor.execute(update_query, values)
+            conn.commit()
+            return "updated by adding 1"
+        else:
+            # If not found, insert the new order
+            insert_query = """
+            INSERT INTO selforders (staff_id, product_id, number_of_items)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(insert_query, (staff_id, product_id, number_of_items))
+            conn.commit()  # Commit the changes to the database
+
+            return "Order added successfully."
+
+    except Exception as error:
+        return "Failed to add or check record."
+
+    finally:
+        # Close the cursor and connection
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+@app.route('/collectselfpurchase', methods=['GET'])
+def check():
+    return retrieve_products_for_staff(1)
+def retrieve_products_for_staff(staff_id):
+    try:
+        conn = connect()  # Establish database connection
+        cursor = conn.cursor(dictionary=True)  # Use dictionary=True for results as dictionaries
+
+        # Step 1: Get product IDs for the given staff_id from selforders
+        select_product_ids_query = """
+        SELECT product_id 
+        FROM selforders
+        WHERE staff_id = %s
+        """
+        cursor.execute(select_product_ids_query, (staff_id,))
+        product_ids = cursor.fetchall()
+        if not product_ids:
+            return {"status": "not_found", "message": "No products found for the given staff."}
+        product_ids_list = [row['product_id'] for row in product_ids]
+
+        # Step 2: Use the product IDs to retrieve product details from the Cart, Products, Featured, and Discounts tables
+        select_product_details_query = """
+                SELECT 
+                    p.product_name,
+                    p.product_id,
+                    p.price,
+                    f.new_price AS featured_price,
+                    d.new_price AS discount_price,
+                    s.number_of_items
+                FROM 
+                    selforders s
+                JOIN 
+                    Products p ON s.product_id = p.product_id
+                LEFT JOIN 
+                    Featured f ON p.product_id = f.product_id
+                LEFT JOIN 
+                    Discounts d ON p.product_id = d.product_id
+                WHERE 
+                    s.product_id IN (%s)
+            """ % ','.join(['%s'] * len(product_ids_list))
+            # Dynamically bind multiple product_ids
+        
+        cursor.execute(select_product_details_query, product_ids_list)
+        products = cursor.fetchall()  # Fetch all product details
+
+        if not products:
+            return {"status": "not_found", "message": "No product details found for the given staff."}
+        
+        return {"status": "success", "data": products}
+
+    except Exception as error:
+        print(f"Failed to retrieve products: {error}")
+        return {"status": "error", "message": "Failed to retrieve product details."}
+
+    finally:
+        # Close the cursor and connection
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+@app.route('/deleteselfproduct', methods=['POST'])
+def delete_self_product():
+    # Get the staff_id from session
+    staff_id = 1
+    conn = connect()
+    # Get the product_id from the request
+    data = request.get_json()
+    product_id = data.get('product_id')
+
+    if not staff_id or not product_id:
+        return jsonify({'status': 'error', 'message': 'Missing staff or product ID'}), 400
+
+    try:
+        # Assuming you have a function to remove a product for a specific staff member
+        cursor = conn.cursor()
+        delete_query = """
+            DELETE FROM selforders
+            WHERE staff_id = %s AND product_id = %s
+        """
+        cursor.execute(delete_query, (staff_id, product_id))
+        conn.commit()
+
+        # Check if the product was actually deleted
+        if cursor.rowcount == 0:
+            return jsonify({'status': 'error', 'message': 'Product not found or already deleted'}), 404
+
+        return jsonify({'status': 'success', 'message': 'Product deleted successfully'})
+
+    except Exception as e:
+        # Handle any errors that may occur during the deletion process
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/updateQuantity', methods=['POST'])
+def update_quantity():
+    data = request.get_json()
+    conn = connect()
+    product_id = data.get('product_id')
+    number_of_items = data.get('number_of_items')
+    staff_id = 1  # Assuming staff_id is stored in session
+
+    if not product_id or number_of_items is None or not staff_id:
+        return jsonify({'status': 'error', 'message': 'Missing product ID, quantity, or staff ID'}), 400
+
+    try:
+        # Assuming you have a database connection
+        cursor = conn.cursor()
+        update_query = """
+            UPDATE selforders
+            SET number_of_items = %s
+            WHERE product_id = %s
+            AND staff_id = %s
+        """
+        cursor.execute(update_query, (number_of_items, product_id, staff_id))
+        conn.commit()
+
+        return jsonify({'status': 'success', 'message': 'Quantity updated successfully'})
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+

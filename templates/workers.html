@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Management</title>
     <!-- Bootstrap CSS -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">  
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static',filename='lib/animate/animate.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static',filename='lib/owlcarousel/assets/owl.carousel.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static',filename='css/style.css') }}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -486,7 +492,7 @@
                 </div>
             {% endfor %}
         </div>
-
+        
         <!-- Payment Section -->
         <div class="card payment-section section" id="paymentSection">
             <div class="card-header">
@@ -534,6 +540,7 @@
                                     if (data.product) {
                                         // If product is found, alert the product details
                                         alert(`Product found: ${JSON.stringify(data.product)}`);
+                                        fetchAndRenderProducts();
                                     } else if (data.error) {
                                 
                                         // If there is an error (e.g., product not found), alert the error message
@@ -554,6 +561,7 @@
 
                                 // Call the function to search for the serial number
                                 checkSerialNumber(serialNumber);
+                                
                             });
                         </script>
             </div>
@@ -563,6 +571,7 @@
                         <table class="table table-light table-borderless table-hover text-center mb-0">
                             <thead class="thead-dark">
                                 <tr>
+                                    <th>image</th>
                                     <th>Products</th>
                                     <th>Price</th>
                                     <th>Quantity</th>
@@ -570,70 +579,208 @@
                                     <th>Remove</th>
                                 </tr>
                             </thead>
-                            <tbody class="align-middle">
-                                {% if cart %}
-                                {% for item in cart %}
-                                <tr>
-                                        <td class="align-middle"> <a href="#"></a><img src="{{ url_for('productsphoto', product_id= item[2]) }}" alt="" style="width: 50px;"> {{ item[1] }} </a></td>
-                                        {% set prices = [item[3]] %} <!-- Add original price -->
-                                        {% if item[4] %} <!-- Check if featured price exists -->
-                                            {% set prices = prices + [item[4]] %}
-                                        {% endif %}
-                                        {% if item[5] %} <!-- Check if discount price exists -->
-                                            {% set prices = prices + [item[5]] %}
-                                        {% endif %}
-            
-                                        <!-- Find the minimum price -->
-                                        {% set best_price = prices | min %}
-            
-                                        <!-- Display the smallest price -->
-                                        
-                                        <td class="align-middle">ksh {{ best_price }}</td>
-                                        <td class="align-middle">
-                                            <div class="input-group quantity mx-auto" style="width: 100px;">
-                                                <div class="input-group-btn">
-                                                    <button class="btn btn-sm btn-primary btn-minus"   value="{{ item[2] }}" onclick="reduceValue(this)">
-                                                    <i class="fa fa-minus"></i>
-                                                    </button>
-                                                </div>
-                                                <input type="text" class="form-control form-control-sm bg-secondary border-0 text-center" value="{{ item[6] }}">
-                                                <div class="input-group-btn">
-                                                    <button class="btn btn-sm btn-primary btn-plus"  value="{{ item[2] }}" onclick="addValue(this)">
-                                                        <i class="fa fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="align-middle"> ksh {{ best_price * item[6] }}</td>
-                                        <td class="align-middle"><button class="btn btn-sm btn-danger" value="{{ item[2] }}" onclick="deleteproduct(this)"><i class="fa fa-times"></i></button></td>
-                                    </a>
-                                </tr>
-                                {% endfor %}
-                                {% endif %}
+                            <tbody id="productTableBody" class="align-middle">
+                                
                             </tbody>
                         </table>
                     </div>
+                    <script>
+                        // Function to fetch data from '/get' endpoint and render the products
+                        async function fetchAndRenderProducts() {
+                            try {
+                                // Fetch data from the '/get' endpoint
+                                let response = await fetch('/collectselfpurchase');
+                                let data = await response.json(); // Parse the JSON response
+                    
+                                if (data.status === 'success') {
+                                    renderProducts(data.data); // Call render function with the fetched data
+                                } else {
+                                    console.error("Failed to fetch data");
+                                }
+                            } catch (error) {
+                                console.error("Error fetching data:", error);
+                            }
+                        }
+                    
+                        // Function to render data into a table
+                        function renderProducts(products) {
+                            const tableBody = document.getElementById('productTableBody');
+                            let total = 0; // Initialize total sales
+                            tableBody.innerHTML = ''; // Clear the table before rendering new rows
+                    
+                            // Loop through the products array and create rows
+                            products.forEach(product => {
+                                // Determine the lowest price
+                                const regularPrice = parseFloat(product.price);
+                                const featuredPrice = parseFloat(product.featured_price) || regularPrice;
+                                const discountPrice = parseFloat(product.discount_price) || regularPrice;
+                    
+                                // Get the minimum price (lowest price)
+                                const lowestPrice = Math.min(regularPrice, featuredPrice, discountPrice);
+                    
+                                // Calculate the total price (lowest price * number of items)
+                                const totalPrice = lowestPrice * product.number_of_items;
+                                total += totalPrice; // Add to total sales
+                    
+                                // Create a row for each product
+                                let row = `
+                                    <tr>
+                                        <td class="align-middle">
+                                            <img src="/productsphoto/${product.product_id}" alt="" style="width: 50px;">
+                                        </td>
+                                        <td class="align-middle">
+                                            <a href="moreinformation/${product.product_id}" class="btn bg-warning">${product.product_name}</a>
+                                        </td>
+                                        <td class="align-middle">ksh ${lowestPrice.toFixed(2)}</td> <!-- Display lowest price -->
+                                        <td class="align-middle">
+                                            <div class="input-group quantity mx-auto" style="width: 100px;">
+                                                <div class="input-group-btn">
+                                                    <button class="btn btn-sm btn-primary btn-minus" onclick="reduceValue(this, ${product.product_id})">
+                                                        <i class="fa fa-minus"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="text" class="form-control form-control-sm bg-secondary border-0 text-center" value="${product.number_of_items}" readonly>
+                                                <div class="input-group-btn">
+                                                    <button class="btn btn-sm btn-primary btn-plus" onclick="addValue(this, ${product.product_id})">
+                                                        <i class="fa fa-plus"></i>
+                                                    </button
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle">ksh ${totalPrice.toFixed(2)}</td> <!-- Display total price -->
+                                        <td class="align-middle">
+                                            <button class="btn btn-sm btn-danger" onclick="deleteProduct(this, ${product.product_id})">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </td>
+
+                                    </tr>
+                                `;
+                                tableBody.innerHTML += row; // Append the row to the table body
+                            });
+                    
+                            // Calculate tax (1% of total)
+                            let tax = total * 0.01;
+                            // Calculate the grand total (total + tax)
+                            let grandTotal = total + tax;
+                    
+                            // Update the subtotal, tax, and total cost in the summary section
+                            document.getElementById('subtotal').innerText = `ksh ${total.toFixed(2)}`;
+                            document.getElementById('tax').innerText = `ksh ${tax.toFixed(2)}`;
+                            document.getElementById('grandTotal').innerText = `ksh ${grandTotal.toFixed(2)}`;
+                        }
+                    
+                        function addValue(element, productId) {
+                                let inputField = element.parentNode.parentNode.querySelector('input');
+                                let currentValue = parseInt(inputField.value);
+                                
+                                // Update the UI
+                                inputField.value = currentValue + 1;
+
+                                // Send the updated value to the backend
+                                updateQuantityInBackend(productId, currentValue + 1);
+                            }
+
+                            function reduceValue(element, productId) {
+                                let inputField = element.parentNode.parentNode.querySelector('input');
+                                let currentValue = parseInt(inputField.value);
+                                
+                                if (currentValue > 1) {
+                                    // Update the UI
+                                    inputField.value = currentValue - 1;
+                                    
+                                    // Send the updated value to the backend
+                                    updateQuantityInBackend(productId, currentValue - 1);
+                                } else {
+                                    alert("Quantity cannot be less than 1");
+                                }
+                            }
+
+                            // Function to update quantity in backend
+                            function updateQuantityInBackend(productId, newQuantity) {
+                                fetch('/updateQuantity', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        product_id: productId,
+                                        number_of_items: newQuantity
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === 'success') {
+                                        fetchAndRenderProducts();
+                                    } else {
+                                        alert("Failed to update quantity: " + data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error updating quantity:", error);
+                                    alert("An error occurred while updating quantity.");
+                                });
+                            }
+
+                    
+                        function deleteProduct(element, productId) {
+                                let confirmDelete = confirm("Are you sure you want to remove this product?");
+                                
+                                if (confirmDelete) {
+                                    // Send a delete request to the backend
+                                    fetch('/deleteselfproduct', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            product_id: productId
+                                        })
+                                    })
+                                    .then(response => response.json()) // Parse the JSON response
+                                    .then(data => {
+                                        if (data.status === 'success') {
+                                            alert("Deleted successfully");
+                                            fetchAndRenderProducts();
+                                            let row = element.closest('tr'); // Remove the row from the UI
+                                            row.remove();
+                                        } else {
+                                            alert("Error occurred during deletion: " + data.message);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error during delete:", error);
+                                        alert("An error occurred while deleting the product.");
+                                    });
+                                }
+                            }
+
+                        // Call fetchAndRenderProducts on page load
+                        window.onload = fetchAndRenderProducts;
+                    </script>
+                    
                     <div class="col-lg-4">
                         <div class="bg-light p-30 mb-5">
                             <div class="border-bottom pb-2">
                                 <div class="d-flex justify-content-between mb-3">
                                     <h6>Subtotal</h6>
-                                    <h6>ksh {{ total }}</h6>
+                                    <h6 id="subtotal">ksh 0</h6> <!-- Subtotal -->
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <h6 class="font-weight-medium">Shipping</h6>
-                                    <h6 class="font-weight-medium">ksh 0 </h6>
+                                    <h6 class="font-weight-medium">Tax (1%)</h6>
+                                    <h6 id="tax">ksh 0</h6> <!-- Tax -->
                                 </div>
                             </div>
                             <div class="pt-2">
                                 <div class="d-flex justify-content-between mt-2">
                                     <h5>Total</h5>
-                                    <h5> ksh {{ total }} </h5>
+                                    <h5 id="grandTotal">ksh 0</h5> <!-- Grand Total -->
                                 </div>
-                                <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="window.location.href='{{ url_for('paymentdetails') }}'">paid cash</button>
+                                <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="window.location.href='{{ url_for('paymentdetails') }}'">Paid Cash</button>
                             </div>
                         </div>
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -703,7 +850,8 @@ function showSection(sectionId) {
             .then(data => {
                 console.log(data.found_products);
                 if (data.found_products || data.found_products.length > 0) {
-                    alert("confirm: " + data.found_products.product_name);
+                    fetchAndRenderProducts();
+                    alert("confirm: " + data.found_products);
                 }
             })
             .catch(error => {
@@ -870,6 +1018,7 @@ function toggleChildassigned(event) {
 
     });
     </script>
+     {% include 'scriptsfooter.html' %}
 </body>
 
 </html>
