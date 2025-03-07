@@ -55,11 +55,21 @@
             <div class="form-text">Format: +254 followed by 9 digits</div>
           </div>
 
-          <!-- Email -->
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" name="email" class="form-control" id="email" placeholder="Enter your email" required>
           </div>
+        
+          <div class="mb-3" id="otp-section" style="display: none;">
+            <label for="otp" class="form-label">Enter OTP</label>
+            <input type="text" id="otp" class="form-control" placeholder="Enter 6-digit OTP">
+            <div id="otp-message" style="color: red; display: none;">Incorrect OTP</div>
+            <div id="otp-correct" style="color: green; display: none;">Correct OTP</div>
+          </div>
+        
+          <button type="button" class="btn btn-primary" id="send-otp" onclick="sendOTP()">Send OTP</button>
+          <div id="resend-timer" style="display: none;">Resend OTP in <span id="timer">30</span> seconds</div>
+          
 
           <!-- Username -->
           <div class="mb-3">
@@ -84,7 +94,7 @@
           <input type="hidden" id="captured_image_data" name="captured_image_data">
 
           <!-- Register Button -->
-          <button type="submit" class="btn btn-primary">Register</button>
+          <button type="submit" class="btn btn-primary" id="register-button" style="display: none;">Register</button>
         </form>
 
         <!-- Login Link -->
@@ -101,6 +111,139 @@
 
   <!-- JavaScript to handle capture and form validation -->
   <script>
+
+
+
+let generatedOTP;
+let emailInitial;
+let countdown;
+let remainingTime = 30; // Countdown timer of 30 seconds
+let timerInterval;
+let emailInput = document.getElementById('email');
+
+// Function to send OTP
+function sendOTP() {
+    emailInitial = emailInput.value;
+    if (emailInitial === '') {
+        alert('Please enter an email address.');
+        return;
+    }
+    
+    generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    fetch('/sendotp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            otp: generatedOTP, 
+            email: emailInitial  
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // alert('OTP sent successfully:', data);
+        document.getElementById('otp-section').style.display = 'block';
+    })
+    .catch(error => {
+        alert('Error sending OTP:', error);
+    });
+  
+
+    
+
+
+    
+    // Show the OTP input field
+    document.getElementById('otp-section').style.display = 'block';
+    
+    // Change the "Send OTP" button to "Resend OTP"
+    document.getElementById('send-otp').textContent = 'Resend OTP';
+    document.getElementById('send-otp').disabled = true;
+    
+    // Start countdown
+    startCountdown();
+  }
+
+// Start countdown
+function startCountdown() {
+    remainingTime = 30;
+    document.getElementById('send-otp').textContent = 'Resend OTP ' + remainingTime;
+    // Clear any existing interval
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Start countdown interval
+    timerInterval = setInterval(function() {
+        remainingTime--;
+        document.getElementById('send-otp').textContent = 'Resend OTP ' + remainingTime;
+
+        if (remainingTime <= 0) {
+          document.getElementById('send-otp').textContent = 'Resend OTP ';
+            clearInterval(timerInterval);
+        }
+    }, 1000);
+}
+
+// OTP input event listener
+document.getElementById('otp').addEventListener('input', function() {
+    const enteredOTP = this.value;
+    const otpMessage = document.getElementById('otp-message');
+    const otpCorrect = document.getElementById('otp-correct');
+    const registerButton = document.getElementById('register-button');
+
+    if (enteredOTP.length >= 6) {
+        if (enteredOTP === generatedOTP) {
+            // OTP is correct
+            otpMessage.style.display = 'none';
+            otpCorrect.style.display = 'block';
+            registerButton.style.display = 'block';
+            document.getElementById('email').disabled=true;
+            this.disabled=true;
+            document.getElementById('send-otp').style.display = 'none';
+        } else {
+            // OTP is incorrect
+            otpMessage.style.display = 'block';
+            otpCorrect.style.display = 'none';
+            registerButton.style.display = 'none';
+        }
+    } else {
+        otpMessage.style.display = 'none';
+        otpCorrect.style.display = 'none';
+        registerButton.style.display = 'none';
+    }
+});
+
+// Email input modification listener
+emailInput.addEventListener('input', function() {
+    if (emailInput.value !== emailInitial) {
+        // Email has been changed, stop the countdown
+        clearInterval(timerInterval);
+        document.getElementById('send-otp').textContent = 'Send OTP'; // Revert back to "Send OTP"
+        document.getElementById('send-otp').disabled = false;
+        document.getElementById('resend-timer').style.display = 'none';
+        
+        // Hide OTP field and reset OTP-related UI
+        document.getElementById('otp-section').style.display = 'none';
+        document.getElementById('otp').value = ''; // Reset OTP input
+        document.getElementById('otp-message').style.display = 'none';
+        document.getElementById('otp-correct').style.display = 'none';
+        document.getElementById('register-button').style.display = 'none';
+    } else {
+        // If the user re-enters the same email, resume the countdown
+        if (remainingTime > 0) {
+            startCountdown();
+            document.getElementById('otp-section').style.display = 'block';
+            document.getElementById('send-otp').disabled = true;
+        }
+    }
+});
+
+
+
+
+
+
+
     document.getElementById('capture').addEventListener('click', function() {
       // Get the video element and canvas
       const canvas = document.getElementById('canvas');

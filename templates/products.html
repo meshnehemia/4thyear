@@ -120,9 +120,9 @@
                             <input type="number" id="available_{{ product.product_id }}" data-product-id="{{ product.product_id }}" value="">
                             <p id="timer_{{ product.product_id }}" style="color: green;"></p>
                         </form>
-                        <h6>Price: ${{ product.price }}</h6>
-                        <h6>Featured Price: ${{ product.featured_price if product.featured_price != 'nil' else 'N/A' }}</h6>
-                        <h6>Advertised Price: ${{ product.advertised_price if product.advertised_price != 'nil' else 'N/A' }}</h6>
+                        <h6>Price: ksh {{ product.price }}</h6>
+                        <h6>Featured Price: ksh {{ product.featured_price if product.featured_price != 'nil' else 'N/A' }}</h6>
+                        <h6>Advertised Price: ksh {{ product.advertised_price if product.advertised_price != 'nil' else 'N/A' }}</h6>
 
 
                          <!-- Edit Product Button -->

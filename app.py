@@ -3,6 +3,9 @@ from facedetection import gen_frames, detect_face , genandface
 from deepface import DeepFace
 from datetime import datetime
 import io
+import cv2
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
 import base64
 import numpy as np
 import cv2
@@ -11,6 +14,7 @@ from database import connect
 import pymysql
 import os
 import json
+from emailsending import sendEmail
 from mpesa import send_mpesa_payment
 from past7daysales import get_sales_past_7_days , get_sales_online_vs_instore,get_sales_last_8_hours,get_total_sales_per_week,get_top_sold_products, monthlyprofit,get_order_status_data
 from dateutil.relativedelta import relativedelta
@@ -163,7 +167,6 @@ def feature():
 
 @app.route('/')
 def home():
-    session['user_id'] = 6
     return render_template('index.html')
 
 def calculate_total_cost(carts):
@@ -280,6 +283,20 @@ def signing():
     user_id, stored_password,user_name, stored_face_image,full_name ,em, phone_number = user
 
     if hashlib.sha256(password.encode()).hexdigest() != stored_password:
+        subject = "unknown person"
+        message = """
+                        Hello,
+                        We noticed a new login attempt to your account. 
+                        If this was you, try to change password. 
+                        However, if you do not recognize this attempt or suspect any unauthorized access, 
+                        we strongly recommend that you change your password immediately for security purposes.
+                        Your security is important to us. 
+                        If you have any concerns, please don't hesitate to contact our support team.
+                        Best regards,
+                        Intelligent Supermarket Management Security Team
+                        """
+              
+        sendEmail(email,subject, message);
         return jsonify({"message": "Incorrect password."}), 401
 
     # Decode the captured image (base64 to binary)
@@ -288,10 +305,39 @@ def signing():
         nparr = np.frombuffer(image_data, np.uint8)  # Convert byte data to numpy array
         captured_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Decode into an image format OpenCV can handle
     except Exception as e:
-        return jsonify({"message": "Error processing image."}), 500
+        subject = "unknown person"
+        message = """
+                        Hello,
+                        We noticed a new login attempt to your account. 
+                        If this was you, no further action is required. 
+                        However, if you do not recognize this attempt or suspect any unauthorized access, 
+                        we strongly recommend that you change your password immediately for security purposes.
+                        Your security is important to us. 
+                        If you have any concerns, please don't hesitate to contact our support team.
+                        Best regards,
+                        Intelligent Supermarket Management Security Team
+                        """
+              
+        sendEmail(email,subject, message);
+        return jsonify({"message": "try again!"}), 500
 
     # Check if the user has a stored face image in the database
     if not stored_face_image:
+        subject = "unknown person"
+        message = """
+                        Hello,
+                        We noticed a new login attempt to your account. 
+                        Either you, or someone who may look like you and has access to your password,
+                        has tried to log in. If this was you, no further action is required. 
+                        However, if you do not recognize this attempt or suspect any unauthorized access, 
+                        we strongly recommend that you change your password immediately for security purposes.
+                        Your security is important to us. 
+                        If you have any concerns, please don't hesitate to contact our support team.
+                        Best regards,
+                        Intelligent Supermarket Management Security Team
+                        """
+              
+        sendEmail(email,subject, message);
         return jsonify({"message": "No face image found for this user."}), 404
 
     try:
@@ -310,14 +356,80 @@ def signing():
             session['email'] = em
             session['phone_number'] = phone_number
             session['transact'] = "not verified";
+            subject = "account accessed successfully"
+            message = """
+            Hello,
+            We noticed a new login to your account just now.
+            Either you, or someone who resembles you and has your password, has accessed the system.
+            If this was you, there's no need to worry! However, 
+            if you do not recognize this activity or suspect any unauthorized access,
+            we recommend you immediately change your password for security purposes.
+            Stay safe and feel free to contact our support if you need any assistance.
+            Best regards,
+            intelligent supermarkt management Security Team
+            """
+            sendEmail(email,subject, message);
+
             return jsonify({"message": "Login successful.","user_id": session['user_id'], "username": session['username']}), 200
         else:
+            subject = "unknown person"
+            message = """
+                        Hello,
+                        We noticed a new login attempt to your account. 
+                        Either you, or someone who may look like you and has access to your password,
+                        has tried to log in. If this was you, no further action is required. 
+                        However, if you do not recognize this attempt or suspect any unauthorized access, 
+                        we strongly recommend that you change your password immediately for security purposes.
+                        Your security is important to us. 
+                        If you have any concerns, please don't hesitate to contact our support team.
+                        Best regards,
+                        Intelligent Supermarket Management Security Team
+                        """
+              
+            sendEmail(email,subject, message);
             return jsonify({"message": "Face does not match."}), 403
     except Exception as e:
-        return jsonify({"message": "Error comparing faces."}), 500
+        subject = "unknown person"
+        message = """
+                        Hello,
+                        We noticed a new login attempt to your account. 
+                        Either you, or someone who may look like you and has access to your password,
+                        has tried to log in. If this was you, no further action is required. 
+                        However, if you do not recognize this attempt or suspect any unauthorized access, 
+                        we strongly recommend that you change your password immediately for security purposes.
+                        Your security is important to us. 
+                        If you have any concerns, please don't hesitate to contact our support team.
+                        Best regards,
+                        Intelligent Supermarket Management Security Team
+                        """
+              
+        sendEmail(email,subject, message);
+        return jsonify({"message": "please be in a good lighting position and capture a clear image."}), 500
 @app.route('/signup')
 def signup():
     return render_template('signup.html') 
+
+@app.route('/sendotp', methods=['POST'])
+def send_otp():
+    data = request.get_json()  # Getting the data sent from frontend
+    otp_received = data.get('otp')
+    email = data.get('email')  # If you want the email too
+    subject = "confirm email for supermarket management system"
+    message = f"""
+    Dear User,
+
+    Your OTP code for email confirmation process is: {otp_received}
+
+    This OTP is valid for the next 10 minutes. If you did not request this, please ignore this email.
+
+    Best regards,
+    Intelligent Supermarket Security Team
+    """
+    # Print the OTP to verify it has been received correctly
+    sendEmail(email,subject,message)
+    
+    # Send a response back to the frontend
+    return jsonify({'status': 'success', 'message': f'OTP {otp_received} received'}), 200
 
 @app.route('/logout')
 def logout():
@@ -460,7 +572,6 @@ def reducecart():
 
 @app.route('/acart', methods=['POST'])
 def addcart():
-        session['user_id']=6;
         data = request.get_json() 
         conn = connect()
         cursor = conn.cursor()
@@ -1006,7 +1117,7 @@ def assign_worker(order_id):
 def assignorders():
     data = request.json
     order_id = data.get('task_id')
-    worker_id = 1
+    worker_id = session['user_id']
     try:
         conn = connect()
         cursor = conn.cursor()
@@ -1106,7 +1217,7 @@ def get_staffname(staff_id):
 @app.route('/placeorder',methods=['POST'])
 def place_order():
     send_mpesa_payment()
-    user_id = 1
+    user_id = session['user_id']
     conn = connect()
     if conn is None:
         return "Could not connect to the database", 500
@@ -1493,7 +1604,6 @@ def add_staff(data):
 
 @app.route("/add_staff", methods=["POST"])
 def add_staff_route():
-    print("okey")
     data = request.get_json()
     response = add_staff(data)
     return jsonify(response)
@@ -1512,7 +1622,7 @@ def listoftasks():
 @app.route('/get_work_data', methods=['GET'])
 def get_work_data():
     # Check if worker_id is in the session (example hardcoded)
-    worker_id = 1  # You can replace this with session['worker_id'] if using sessions
+    worker_id = session['user_id']  # You can replace this with session['worker_id'] if using sessions
     conn = connect()
     cursor = conn.cursor(dictionary=True)
     
@@ -1551,10 +1661,6 @@ def get_work_data():
     
     # Return the tasks data as JSON
     return jsonify(hourly_data)
-
-import cv2
-import pytesseract
-pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
 
 def get_all_products():
     conn = connect()
@@ -1609,7 +1715,7 @@ def process_frame():
 
 @app.route('/checkSerialNumber', methods=['GET'])
 def check_serial_number():
-    session['staff_id'] = 1;
+    session['staff_id'] = session['user_id'];
     # Get the serial number from the query parameters
     serial_number = request.args.get('serial_number')
 
@@ -1725,7 +1831,7 @@ def insert_selforder(staff_id, product_id, number_of_items):
 
 @app.route('/collectselfpurchase', methods=['GET'])
 def check():
-    return retrieve_products_for_staff(1)
+    return retrieve_products_for_staff(session['user_id'])
 def retrieve_products_for_staff(staff_id):
     try:
         conn = connect()  # Establish database connection
@@ -1786,7 +1892,7 @@ def retrieve_products_for_staff(staff_id):
 @app.route('/deleteselfproduct', methods=['POST'])
 def delete_self_product():
     # Get the staff_id from session
-    staff_id = 1
+    staff_id = session['user_id']
     conn = connect()
     # Get the product_id from the request
     data = request.get_json()
@@ -1822,7 +1928,7 @@ def update_quantity():
     conn = connect()
     product_id = data.get('product_id')
     number_of_items = data.get('number_of_items')
-    staff_id = 1  # Assuming staff_id is stored in session
+    staff_id = session['user_id']  # Assuming staff_id is stored in session
 
     if not product_id or number_of_items is None or not staff_id:
         return jsonify({'status': 'error', 'message': 'Missing product ID, quantity, or staff ID'}), 400
