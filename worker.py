@@ -4,10 +4,10 @@ from database import connect
 from flask import jsonify
 from datetime import datetime
 
-def mytasks():
+def mytasks(staff_id):
     conn = connect()
     cursor = conn.cursor()
-    worker_id = 1
+    worker_id = staff_id
     query_tasks = """
     SELECT 
         (SELECT COUNT(*) FROM list_of_tasks WHERE status = 'completed' AND staff_id = %s) AS completed_tasks,
@@ -66,8 +66,7 @@ def mytasks():
 #     processed_text = f"Processed video for email: {email}, phone: {phone}"
 #     return jsonify({"message": processed_text}), 200
 
-def completedtasks():
-    staff_id = 1
+def completedtasks(staff_id):
     conn = connect()
     cursor = conn.cursor()
     query_with_staff = "SELECT * FROM list_of_tasks WHERE status = 'completed'  AND staff_id = %s"
@@ -94,8 +93,8 @@ def completedtasks():
         "count_without_staff": count_without_staff
     }
 
-def completedorders():
-    assigned_worker = 2
+def completedorders(staff_id):
+    assigned_worker = staff_id
     conn = connect()
     cursor = conn.cursor()
     query_with_worker = """
@@ -225,8 +224,7 @@ def availabletasks():
         "counts_of_orders": counts_of_orders,
     }
 
-def assignedorders():
-    staff_id = 1
+def assignedorders(staff_id):
     conn = connect()
     cursor = conn.cursor()
     # Query for orders without the specified assigned worker
@@ -256,8 +254,7 @@ def assignedorders():
         "available_orders": available_orders
     }
 
-def assignedtasks():
-    staff_id = 1
+def assignedtasks(staff_id):
     conn = connect()
     cursor = conn.cursor()
     availabletasks = "SELECT * FROM list_of_tasks WHERE status = 'assigned' and staff_id = %s"
@@ -277,8 +274,7 @@ def assignedtasks():
         "counts_of_orders": counts_of_orders,
     }
 
-def assigntask(task_id):
-    staff_id = 1
+def assigntask(staff_id,task_id):
     conn = connect()
     cursor = conn.cursor()
     cursor.execute("UPDATE list_of_tasks SET staff_id = %s, status = 'assigned' WHERE task_id = %s", (staff_id, task_id))

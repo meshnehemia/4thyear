@@ -152,75 +152,74 @@ def get_sales_last_8_hours():
         return sales_data
 
 def get_total_sales_per_week():
-        conn = connect()
-        cursor = conn.cursor()
+    conn = connect()
+    cursor = conn.cursor()
 
-        current_date = datetime.now()
-        weekly_sales_online = []
-        weekly_sales_instore = []
-        week_labels = []
+    current_date = datetime.now()
+    weekly_sales_online = []
+    weekly_sales_instore = []
+    week_labels = []
 
-        # Loop through the last 4 weeks (current week is last)
-        for i in range(4):
-            # Calculate the start of the week (Monday) for the current week and the previous ones
-            # Get the current week's start (Monday) and end (Sunday)
-            week_start = current_date - timedelta(days=current_date.weekday()) - timedelta(weeks=i)
-            week_end = week_start + timedelta(days=6)  # Sunday of the same week
+    # Loop through the last 4 weeks (current week as last)
+    for i in range(4):
+        week_start = (current_date - timedelta(days=current_date.weekday()) - timedelta(weeks=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        week_end = (week_start + timedelta(days=6)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
-            # Query for Online Sales in the week range
-            online_query = """
-                SELECT SUM(amount_bought)
-                FROM sales
-                WHERE sale_date BETWEEN %s AND %s AND sale_type = 'Online';
-            """
-            cursor.execute(online_query, (week_start, week_end))
-            online_sales = cursor.fetchone()
-            weekly_sales_online.append(online_sales[0] if online_sales[0] else 0)
+        # Query for Online Sales in the week range
+        online_query = """
+            SELECT SUM(amount_bought)
+            FROM sales
+            WHERE DATE(sale_date) BETWEEN %s AND %s AND sale_type = 'Online';
+        """
+        cursor.execute(online_query, (week_start, week_end))
+        online_sales = cursor.fetchone()
+        weekly_sales_online.append(online_sales[0] if online_sales[0] else 0)
 
-            # Query for In-Store Sales in the week range
-            instore_query = """
-                SELECT SUM(amount_bought)
-                FROM sales
-                WHERE sale_date BETWEEN %s AND %s AND sale_type = 'In-Store';
-            """
-            cursor.execute(instore_query, (week_start, week_end))
-            instore_sales = cursor.fetchone()
-            weekly_sales_instore.append(instore_sales[0] if instore_sales[0] else 0)
+        # Query for In-Store Sales in the week range
+        instore_query = """
+            SELECT SUM(amount_bought)
+            FROM sales
+            WHERE sale_date BETWEEN %s AND %s AND sale_type = 'In-Store';
+        """
+        cursor.execute(instore_query, (week_start, week_end))
+        instore_sales = cursor.fetchone()
+        weekly_sales_instore.append(instore_sales[0] if instore_sales[0] else 0)
 
-            # Add Week Labels (starting from Week 1)
-            week_labels.append(f"Week {i+1}")
+        # Add Week Labels (current week will be "Week 1")
+        week_labels.append(f"Week {i + 1}")
 
-        # Reverse the lists to have the current week as the last
-        weekly_sales_online.reverse()
-        weekly_sales_instore.reverse()
-        week_labels.reverse()
+    # Reverse the lists to have the current week as the last (Week 4 -> Week 1)
+    weekly_sales_online.reverse()
+    weekly_sales_instore.reverse()
+    week_labels.reverse()
 
-        # Calculate total sales per week
-        total_sales_per_week = [online + instore for online, instore in zip(weekly_sales_online, weekly_sales_instore)]
+    # Calculate total sales per week
+    total_sales_per_week = [online + instore for online, instore in zip(weekly_sales_online, weekly_sales_instore)]
+    print(weekly_sales_instore, weekly_sales_online, total_sales_per_week)
 
-        # Prepare the dataset for the chart
-        weekly_sales_data = {
-            'labels': week_labels,  # Week 1 to Week 4 labels (current week last)
-            'datasets': [
-                {
-                    'label': 'Online Sales',
-                    'data': weekly_sales_online,
-                    'backgroundColor': '#42a5f5'
-                },
-                {
-                    'label': 'On-Shelf Sales',
-                    'data': weekly_sales_instore,
-                    'backgroundColor': '#66bb6a'
-                },
-                {
-                    'label': 'Total Sales',
-                    'data': total_sales_per_week,
-                    'backgroundColor': '#ffeb3b'  # Yellow for total sales
-                }
-            ]
-        }
+    # Prepare the dataset for the chart
+    weekly_sales_data = {
+        'labels': week_labels,  # Week 1 to Week 4 labels (current week last)
+        'datasets': [
+            {
+                'label': 'Online Sales',
+                'data': weekly_sales_online,
+                'backgroundColor': '#42a5f5'
+            },
+            {
+                'label': 'On-Shelf Sales',
+                'data': weekly_sales_instore,
+                'backgroundColor': '#66bb6a'
+            },
+            {
+                'label': 'Total Sales',
+                'data': total_sales_per_week,
+                'backgroundColor': '#ffeb3b'  # Yellow for total sales
+            }
+        ]
+    }
 
-        return weekly_sales_data
+    return weekly_sales_data
 
 def get_top_sold_products():
         conn = connect()

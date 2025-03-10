@@ -203,6 +203,93 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Increased shadow on hover */
         }
         
+        .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Darker background for a cleaner overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's above everything */
+}
+
+.modal-content {
+    background: #ffffff;
+    margin: 10% 40%;
+    border-radius: 12px;
+    width: 320px;
+    max-width: 90%; /* Make it responsive for smaller screens */
+    text-align: center;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.3); /* Soft shadow for depth */
+    animation: slideDown 0.3s ease; /* Subtle animation for modal appearance */
+}
+
+.modal-content h4 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.modal-content button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.modal-content button:hover {
+    background-color: #2980b9;
+}
+
+.modal-content .cancel {
+    background-color: #e74c3c;
+}
+
+.modal-content .cancel:hover {
+    background-color: #c0392b;
+}
+
+/* Spinner for E-Pay */
+.spinner {
+    border: 6px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 6px solid #3498db;
+    width: 50px;
+    height: 50px;
+    margin: 20px auto; /* Center it inside the modal */
+    animation: spin 1.5s linear infinite;
+}
+
+/* Animation for modal slide-in */
+@keyframes slideDown {
+    0% { transform: translateY(-50px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Spinner animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
     </style>
 </head>
 
@@ -501,7 +588,7 @@
             <div class="card-body">
                 <form id="paymentForm" style="display: flex;">
                     <video id="video" autoplay playsinline></video>
-                    <div style="display: block; padding: 30px;">
+                    <!-- <div style="display: block; padding: 30px;">
                         <div class="form-group mb-3">
                             <label for="email">Email</label>
                             <input type="email" id="email" class="form-control" required>
@@ -514,7 +601,7 @@
                         </div>
                         <button type="submit" class="submit-btn btn btn-success" >Submit Payment</button>
                     
-                    </div>
+                    </div> -->
                     </form>
                         
                         <form id="serialNumberForm">
@@ -565,6 +652,38 @@
                             });
                         </script>
             </div>
+            <!-- Pop-up for Paid Cash -->
+<div id="cashModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h4>Cash Payment</h4>
+        <label for="cashInput">Enter Amount:</label>
+        <p id="amounttopay"></p>
+        <input type="number" id="cashInput" placeholder="Enter amount paid" oninput="checkCashAmount()">
+        <span id="cashWarning" style="color: red; display: none;">Insufficient amount!</span>
+        <button id="cashConfirmBtn" disabled onclick="processSelfOrders()">Confirm Payment</button>
+        <button onclick="closeModal('cashModal')">Cancel</button>
+    </div>
+</div>
+
+<!-- Pop-up for E-Pay -->
+<div id="ePayModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h4>E-Payment</h4>
+        <label for="phoneNumberInput">Enter Phone Number:</label>
+        <input type="text" id="phoneNumberInput" placeholder="Enter phone number">
+        <button id="ePayConfirmBtn" onclick="simulateEpay()">Confirm Payment</button>
+        <button onclick="closeModal('ePayModal')">Cancel</button>
+    </div>
+</div>
+
+<!-- Simulated Loading for E-Pay -->
+<div id="loadingModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h4>Processing Payment...</h4>
+        <div class="spinner"></div>
+    </div>
+</div>
+
             <div class="container-fluid">
                 <div class="row px-xl-5">
                     <div class="col-lg-8 table-responsive mb-5">
@@ -586,6 +705,7 @@
                     </div>
                     <script>
                         // Function to fetch data from '/get' endpoint and render the products
+                        let totalcost = 0;
                         async function fetchAndRenderProducts() {
                             try {
                                 // Fetch data from the '/get' endpoint
@@ -663,11 +783,13 @@
                             let tax = total * 0.01;
                             // Calculate the grand total (total + tax)
                             let grandTotal = total + tax;
+                            totalcost = grandTotal;
                     
                             // Update the subtotal, tax, and total cost in the summary section
                             document.getElementById('subtotal').innerText = `ksh ${total.toFixed(2)}`;
                             document.getElementById('tax').innerText = `ksh ${tax.toFixed(2)}`;
                             document.getElementById('grandTotal').innerText = `ksh ${grandTotal.toFixed(2)}`;
+                            document.getElementById('amounttopay').innerText = `ksh ${grandTotal.toFixed(2)}`;
                         }
                     
                         function addValue(element, productId) {
@@ -754,6 +876,152 @@
                                     });
                                 }
                             }
+                            // Variables for cash total
+ // This should dynamically update with the actual total amount
+
+// Function to display the Cash Payment pop-up
+function showCashModal() {
+    document.getElementById('cashModal').style.display = 'block';
+}
+
+// Function to check the input cash amount
+function checkCashAmount() {
+    let cashAmount = parseFloat(document.getElementById('cashInput').value);
+    let totalAmount = totalcost;
+    if (cashAmount >= totalAmount) {
+        document.getElementById('cashConfirmBtn').disabled = false;
+        document.getElementById('cashWarning').style.display = 'none';
+    } else {
+        document.getElementById('cashConfirmBtn').disabled = true;
+        document.getElementById('cashWarning').style.display = 'block';
+    }
+}
+
+// Function to display the E-Pay pop-up
+function showEpayModal() {
+    document.getElementById('ePayModal').style.display = 'block';
+}
+
+// Simulate E-Pay processing
+async function simulateEpay() {
+    let phoneNumber = document.getElementById('phoneNumberInput').value;
+
+    // Ensure the phone number is valid (at least 10 digits)
+    if (phoneNumber.length >= 10) {
+        // Hide the payment modal and show the loading modal
+        document.getElementById('ePayModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'block';
+
+        // Trim whitespace and format the phone number
+        phoneNumber = phoneNumber.trim();
+        let formattedNumber = phoneNumber;
+        if (phoneNumber.startsWith("0")) {
+            formattedNumber = "254" + phoneNumber.slice(1);
+        }
+
+        const paymentData = {
+            phoneNumber: formattedNumber
+        };
+
+        try {
+            // Send the request to the server for payment
+            const paymentResponse = await fetch('/shelfpayment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
+            });
+
+            const paymentDataResponse = await paymentResponse.json();
+
+            // Hide the loading modal once the response is received
+            document.getElementById('loadingModal').style.display = 'none';
+
+            if (paymentDataResponse.success) {
+                alert(paymentDataResponse.message); // Show success message
+
+                // Process self-orders after payment
+                const selfOrderResponse = await fetch('/self_sales_orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})  // Add required data if any
+                });
+
+                const selfOrderData = await selfOrderResponse.json();
+
+                if (selfOrderResponse.ok) {
+                    alert(selfOrderData.message || 'Self-order processed successfully!');
+                } else {
+                    alert(selfOrderData.message || 'Failed to process self-order');
+                }
+
+                printReceipt(); // Proceed to print the receipt
+            } else {
+                alert('Payment failed: ' + paymentDataResponse.message); // Show failure message
+            }
+        } catch (error) {
+            // Hide the loading modal if an error occurs
+            document.getElementById('loadingModal').style.display = 'none';
+            alert('Error: ' + error.message); // Show error message
+            console.error(error.message);
+        }
+    } else {
+        // Notify the user if the phone number is invalid
+        alert("Please enter a valid phone number!");
+    }
+}
+
+
+// Function to close the modal
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+async function processSelfOrders() {
+    try {
+        // Send request to the server to process self-orders after payment
+        const selfOrderResponse = await fetch('/self_sales_orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})  // Add required data here if necessary
+        });
+
+        // Convert the response to JSON format
+        const selfOrderData = await selfOrderResponse.json();
+
+        // Check if the request was successful
+        if (selfOrderResponse.ok) {
+            // Display success message to the user
+            alert(selfOrderData.message || 'Self-order processed successfully!');
+        } else {
+            // Display error message if the request failed
+            alert(selfOrderData.message || 'Failed to process self-order');
+        }
+    } catch (error) {
+        // Handle any errors that occur during the request
+        console.error('Error while processing self-order:', error);
+        alert('An error occurred while processing the self-order. Please try again.');
+    }
+    printReceipt();
+   // Reload the page
+    window.location.reload();
+
+}
+
+// Function to print the receipt (placeholder function)
+function printReceipt() {
+    
+    alert("Printing receipt...");
+    // Your receipt generation logic goes here
+}
+
+// Show Cash Payment Modal when "Paid Cash" is clicked
+document.querySelector(".btn-block.btn-primary.font-weight-bold.my-3.py-3").onclick = showCashModal;
+
 
                         // Call fetchAndRenderProducts on page load
                         window.onload = fetchAndRenderProducts;
@@ -776,7 +1044,10 @@
                                     <h5>Total</h5>
                                     <h5 id="grandTotal">ksh 0</h5> <!-- Grand Total -->
                                 </div>
-                                <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="window.location.href='{{ url_for('paymentdetails') }}'">Paid Cash</button>
+                                <div>
+                                    <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="showCashModal()">Paid Cash</button>
+                                    <button class="btn btn-block btn-primary font-weight-bold my-3 py-3" onclick="showEpayModal()">E pay</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1017,6 +1288,7 @@ function toggleChildassigned(event) {
         location.reload();
 
     });
+    fetchAndRenderProducts();
     </script>
      {% include 'scriptsfooter.html' %}
 </body>

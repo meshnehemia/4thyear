@@ -18,37 +18,44 @@ def get_mpesa_access_token():
         return access_token
     else:
         raise Exception("Could not get access token from MPesa API")
-def send_mpesa_payment():
-    access_token = get_mpesa_access_token()
+def send_mpesa_payment(phone):
+    try:
+        access_token = get_mpesa_access_token()
 
-    # Headers for the API request
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
+        # Headers for the API request
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
 
-    # Payload for sending the SSD to the phone number
-    payload = {
-        "BusinessShortCode": 174379,  # Replace with your valid shortcode
-        "Password": "MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjUwMTEzMTQ0OTUz",  # Replace with your valid password
-        "Timestamp": "20250113144953",  # Ensure the timestamp is correctly generated
-        "TransactionType": "CustomerPayBillOnline",
-        "Amount": 1,  # Amount to send (1 shilling in this case)
-        "PartyA": 254757316903,  # Replace with the sender's phone number in international format
-        "PartyB": 174379,  # Replace with your business shortcode
-        "PhoneNumber": 254757316903,  # Phone number to send the money to
-        "CallBackURL": "https://your-callback-url.com",
-        "AccountReference": "CompanyXLTD",  # Reference for the payment
-        "TransactionDesc": "Payment of SSD"  # Description of the payment
-    }
+        # Payload for sending the SSD to the phone number
+        payload = {
+            "BusinessShortCode": 174379,  # Replace with your valid shortcode
+            "Password": "MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjUwMTEzMTQ0OTUz",  # Replace with your valid password
+            "Timestamp": "20250113144953",  # Ensure the timestamp is correctly generated
+            "TransactionType": "CustomerPayBillOnline",
+            "Amount": 1,  # Amount to send (1 shilling in this case)
+            "PartyA":phone,  # Replace with the sender's phone number in international format
+            "PartyB": 174379,  # Replace with your business shortcode
+            "PhoneNumber": 254757316903,  # Phone number to send the money to
+            "CallBackURL": "https://your-callback-url.com",
+            "AccountReference": "CompanyXLTD",  # Reference for the payment
+            "TransactionDesc": "Payment of SSD"  # Description of the payment
+        }
 
-    # Send the request to the MPesa API
-    response = requests.post(
-        'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-        headers=headers,
-        json=payload  # Use json=payload to send the request in JSON format
-    )
+        # Send the request to the MPesa API
+        response = requests.post(
+            'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+            headers=headers,
+            json=payload  # Use json=payload to send the request in JSON format
+        )
 
-    # Print the response from the API
-    print(response.text.encode('utf8'))
+        # Print the response from the API
+        print(response.text.encode('utf8'))
 
+        print(f"Processing Mpesa payment for phone number: {phone}")
+        return {"status": "success", "message": 'wait for mpesa code'}  # Ensure this function returns a dictionary
+    except Exception as e:
+        print(phone)
+        print(f"Error during payment processing: {e}")
+        return {"status": "failure", "message": str(e)}

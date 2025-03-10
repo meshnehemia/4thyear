@@ -4,6 +4,7 @@ from deepface import DeepFace
 from datetime import datetime
 import io
 import cv2
+from transactionemails import generate_order_receipt
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"  
 import base64
@@ -167,6 +168,12 @@ def feature():
 
 @app.route('/')
 def home():
+    session['user_id'] = 6
+    session['username'] = "user_name"
+    session['full_name'] = "full_name"
+    session['email'] = "meshnehemia7@gmail.com"
+    session['phone_number'] = 254757316903
+    session['transact'] = "not verified";
     return render_template('index.html')
 
 def calculate_total_cost(carts):
@@ -353,7 +360,7 @@ def signing():
             session['user_id'] = user_id
             session['username'] = user_name
             session['full_name'] = full_name
-            session['email'] = em
+            session['email'] = email
             session['phone_number'] = phone_number
             session['transact'] = "not verified";
             subject = "account accessed successfully"
@@ -492,7 +499,6 @@ def video_feed():
 
 @app.route('/transactionfeed')
 def transactionfeed():
-    session['user_id'] = 1;
     return Response(genandface(session['user_id']), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/capture_image', methods=['POST'])
@@ -518,16 +524,42 @@ def capture_image():
         if detect_face(img):
             return jsonify({'message': 'face detected continue to register','image': image_filename})
 
-        return jsonify({'message': 'no face detected', 'image': image_filename}), 400
+        return jsonify({'message': 'no face detected', 'image': image_filename}), 401
 
     except Exception as e:
-        return jsonify({'message': f'Error: {str(e)}'}), 400
+        return jsonify({'message': f'Error: {str(e)}'}), 405
 
 
 
 @app.route('/transact')
 def transaction():
     return render_template('transactions.html')
+
+@app.route('/shelfpayment', methods=['POST'])
+def shelf_payment():
+    data = request.json
+    if 'phoneNumber' not in data:
+        return jsonify({"success": False, "message": "Phone number is missing"}), 400
+
+    phone_number = data['phoneNumber']
+    result = send_mpesa_payment(phone_number)
+    if result["status"] == "success":
+        return jsonify({"success": True, "message": result["message"]}), 200
+    else:
+        return jsonify({"success": False, "message": "Payment failed"}), 500
+
+@app.route('/transactionverification', methods=['POST'])
+def transaction_verification():
+    data = request.get_json()
+    otp = data.get('otp')
+    email = session['email']
+    user_id = session['user_id']
+    if otp:
+        generate_order_receipt(email , user_id,otp)
+        print(f"OTP to send: {user_id}")
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False}), 400
 
 @app.route('/verify')
 def face_recognized():
@@ -778,7 +810,7 @@ def assign_task():
 def wassign_task():
     data = request.json
     task_id = data.get('task_id')
-    return assigntask(task_id)
+    return assigntask(session['user_id'],task_id)
 
 @app.route('/wcomplete', methods=['POST'])
 def completetasks():
@@ -1216,7 +1248,7 @@ def get_staffname(staff_id):
 
 @app.route('/placeorder',methods=['POST'])
 def place_order():
-    send_mpesa_payment()
+    send_mpesa_payment(session['phone_number'])
     user_id = session['user_id']
     conn = connect()
     if conn is None:
@@ -1259,6 +1291,7 @@ def place_order():
                              VALUES (%s, %s, 'online', %s, %s)'''
             profit_made = cost * 0.1  # Assuming a 10% profit margin, adjust as necessary
             cursor.execute(query_sales, (product_id, user_id, cost, profit_made))
+            reduce(product_id)
 
         # Step 4: Clear the user's cart
         query_clear_cart = '''DELETE FROM Cart WHERE user_id = %s'''
@@ -1275,6 +1308,72 @@ def place_order():
         print(str(e))
         return "Error placing order", 500
     finally:
+        conn.close()
+@app.route('/self_sales_orders', methods=['POST'])
+def process_self_order():
+    staff_id = session['user_id']  # Get the staff_id from the session
+    if not staff_id:
+        return jsonify({"error": "Staff ID not found in session"}), 400
+
+    conn = connect()
+    if conn is None:
+        return jsonify({"error": "Could not connect to the database"}), 500
+
+    try:
+        cursor = conn.cursor()
+
+        # Step 1: Fetch the self-orders for this staff member
+        query_self_orders = '''SELECT product_id, number_of_items FROM selforders WHERE staff_id = %s'''
+        cursor.execute(query_self_orders, (staff_id,))
+        self_orders = cursor.fetchall()
+
+        if not self_orders:
+            return jsonify({"error": "No self-orders found for this staff member"}), 400
+
+        # Step 2: For each self-order, insert into the 'sales' table with 'on-Store' as sale_type
+        for order in self_orders:
+            product_id = order[0]
+            number_of_items = order[1]
+
+            # Get product price from the Products table to calculate total cost
+            query_product = '''SELECT price FROM Products WHERE product_id = %s'''
+            cursor.execute(query_product, (product_id,))
+            product = cursor.fetchone()
+
+            if product is None:
+                return jsonify({"error": f"Product with ID {product_id} not found"}), 400
+
+            cost = float(product[0]) * float(number_of_items)
+
+            # Insert into sales table for 'on-Store' type
+            query_sales = '''INSERT INTO sales (product_id, client_id, sale_type, amount_bought, profit_made)
+                             VALUES (%s, %s, 'In-Store', %s, %s)'''
+            profit_made = cost * 0.1  # Assuming a 10% profit margin
+            cursor.execute(query_sales, (product_id, staff_id, cost, profit_made))
+            reduce(product_id)
+
+        # Step 3: Remove the self-orders from the 'selforders' table
+        query_remove_self_orders = '''DELETE FROM selforders WHERE staff_id = %s'''
+        cursor.execute(query_remove_self_orders, (staff_id,))
+
+        # Step 4: Add a task indicating the self-order has been processed
+        query_add_task = '''INSERT INTO list_of_tasks (task_description, status, staff_id, date_completed)
+                    VALUES (%s, 'completed', %s, NOW())'''
+        task_description = f'Self-order processing completed for staff ID {staff_id}.'
+        cursor.execute(query_add_task, (task_description, staff_id))
+
+        # Commit all changes
+        conn.commit()
+
+        print(f"Self-order processed successfully for staff ID {staff_id}.")
+        return jsonify({"message": "Self-order processed successfully"}), 200
+
+    except Exception as e:
+        conn.rollback()  # Rollback in case of error
+        print(f"Error processing self-order for staff ID {staff_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
         conn.close()
 
 @app.route('/ordersmanagement')
@@ -1614,8 +1713,8 @@ def myorders():
 
 @app.route("/workersdaskboard")
 def listoftasks():
-    tasks = mytasks()
-    return render_template('workers.html', tasks= tasks['tasks'],completetasks= completedtasks() ,completedorders=completedorders(), availableorders=availableorders(),availabletasks=availabletasks(),assignedorders=assignedorders(),assignedtasks=assignedtasks())
+    tasks = mytasks(session['user_id'])
+    return render_template('workers.html', tasks= tasks['tasks'],completetasks= completedtasks(session['user_id']) ,completedorders=completedorders(session['user_id']), availableorders=availableorders(),availabletasks=availabletasks(),assignedorders=assignedorders(session['user_id']),assignedtasks=assignedtasks(session['user_id']))
 
 
 
@@ -1744,15 +1843,32 @@ def insert_or_update_item():
     try:
         conn = connect()
         cursor = conn.cursor()
-        query = """
-        INSERT INTO availableItemNumber (product_id, number_of_items)
-        VALUES (%s, %s)
-        ON DUPLICATE KEY UPDATE number_of_items = VALUES(number_of_items);
-        """
-        values = (product_id, number_of_items)
-        cursor.execute(query, values)
+
+        # First, check if the product already exists
+        check_query = "SELECT * FROM availableItemNumber WHERE product_id = %s"
+        cursor.execute(check_query, (product_id,))
+        existing_item = cursor.fetchone()
+
+        if existing_item:
+            # If the item exists, update the item count
+            update_query = """
+            UPDATE availableItemNumber 
+            SET number_of_items = %s 
+            WHERE product_id = %s;
+            """
+            cursor.execute(update_query, (number_of_items, product_id))
+            print(f"Product ID {product_id} updated with {number_of_items} items.")
+        else:
+            # If the item does not exist, insert the new item
+            insert_query = """
+            INSERT INTO availableItemNumber (product_id, number_of_items) 
+            VALUES (%s, %s);
+            """
+            cursor.execute(insert_query, (product_id, number_of_items))
+            print(f"Product ID {product_id} inserted with {number_of_items} items.")
+
+        # Commit the changes
         conn.commit()
-        print(f"Product ID {product_id} updated with {number_of_items} items.")
         return jsonify({"status": "success", "message": "Item count updated successfully."})
 
     except Exception as error:
@@ -1949,6 +2065,54 @@ def update_quantity():
 
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+    
+
+def reduce(product_id):
+    try:
+        conn = connect()
+        cursor = conn.cursor()
+
+        # Check the current number of items
+        check_query = """
+        SELECT number_of_items
+        FROM availableItemNumber
+        WHERE product_id = %s;
+        """
+        cursor.execute(check_query, (product_id,))
+        current_item = cursor.fetchone()
+
+        if current_item is None:
+            # If the product doesn't exist, return an error message
+            return jsonify({"status": "error", "message": "Product not found."})
+
+        # Get the current number of items
+        number_of_items = current_item[0]
+
+        if number_of_items > 0:
+            # Reduce the item count by 1
+            update_query = """
+            UPDATE availableItemNumber
+            SET number_of_items = number_of_items - 1
+            WHERE product_id = %s;
+            """
+            cursor.execute(update_query, (product_id,))
+            conn.commit()
+            return jsonify({"status": "success", "message": "Item reduced by one."})
+
+        else:
+            # If the number of items is already 0, return an error message
+            return jsonify({"status": "error", "message": "No more items available."})
+
+    except Exception as error:
+        print(f"Failed to reduce item count: {error}")
+        return jsonify({"status": "error", "message": "Failed to reduce item count."})
+
+    finally:
+        # Close the cursor and connection
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
