@@ -1,107 +1,149 @@
-<form action="/transact">
-<div class="container-fluid">
-    <div class="row px-xl-5">
-        <div class="col-lg-8">
-            <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Billing Address</span></h5>
-            <div class="bg-light p-30 mb-5">
-                <div class="row">
-                    <div class="col-md-6 form-group">
-                        <label>Full_name</label>
-                        <input class="form-control" type="text" placeholder="{{ session['full_name'] }}" value="{{ session['full_name'] }}" disabled>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>E-mail</label>
-                        <input class="form-control" type="text" placeholder="{{ session['email'] }}" value="{{ session['email'] }}" disabled>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>Mobile No</label>
-                        <input class="form-control" type="text" placeholder="{{ session['phone_number'] }}" value="{{ session['phone_number'] }}" disabled>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>Station</label>
-                        <select class="custom-select">
-                            <option selected>chuka</option>
-                            <option>Nairobi</option>
-                            <option>meru</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>village/section/street/nearest landmark</label>
-                        <input class="form-control" type="text" placeholder="eg behind lowlands hotel ">
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>house number/ family name/ futher description </label>
-                        <input class="form-control" type="text" placeholder="eg. land hostels, room 2 ">
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label>derivery type</label>
-                        <select class="custom-select">
-                            <option selected>pick on supermarket</option>
-                            <option>station derivery</option>
-                            <option>door derivery </option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Order Total</span></h5>
-            <div class="bg-light p-30 mb-5">
-                <div class="border-bottom">
-                    <h6 class="mb-3">Products</h6>
-                    {% if items %}
-                    {% for item in items %}
-                    <div class="d-flex justify-content-between">
-                        <p>{{ item[1] }}</p>
-                        {% set prices = [item[3]] %} <!-- Add original price -->
-                            {% if item[4] %} <!-- Check if featured price exists -->
-                                {% set prices = prices + [item[4]] %}
-                            {% endif %}
-                            {% if item[5] %} <!-- Check if discount price exists -->
-                                {% set prices = prices + [item[5]] %}
-                            {% endif %}
-
-                            <!-- Find the minimum price -->
-                            {% set best_price = prices | min %}
-                        <p> ksh {{ best_price * item[6] }} </p>
-                    </div>
-                    {% endfor %}
-                    {% endif %}
-                </div>
-                {% if items %}
-                <div class="border-bottom pt-3 pb-2">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h6>Subtotal</h6>
-                        <h6>ksh {{ total }}</h6>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <h6 class="font-weight-medium">Shipping</h6>
-                        <h6 class="font-weight-medium">ksh 0</h6>
-                    </div>
-                </div>
-                <div class="pt-2">
-                    <div class="d-flex justify-content-between mt-2">
-                        <h5>Total</h5>
-                        <h5>ksh {{ total }}</h5>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            <div class="mb-5">
-                <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Payment</span></h5>
-                <div class="bg-light p-30">
-                    <div class="form-group">
-                        <div class="custom-control custom-radio">
-                            <input type="text" value= "mpesa" class="custom-control-input" name="payment" id="mpesa">
-                            <label class="custom-control-label" for="mpesa">M-pesa</label>
+<form action="" method="POST" id="pform">
+    <div class="container-fluid">
+        <div class="row px-xl-5">
+            <div class="col-lg-8">
+                <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Billing Address</span></h5>
+                <div class="bg-light p-30 mb-5">
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label>Full_name</label>
+                            <input class="form-control" id="full_name" type="text" value="{{ session['full_name'] }}" disabled>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>E-mail</label>
+                            <input class="form-control" id="email" type="text" value="{{ session['email'] }}" disabled>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Mobile No</label>
+                            <input class="form-control" id="phone_number" type="text" value="{{ session['phone_number'] }}" disabled>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Station</label>
+                            <select id="station" class="custom-select">
+                                <option selected>chuka</option>
+                                <option>Nairobi</option>
+                                <option>meru</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Village/Section/Street/Landmark</label>
+                            <input class="form-control" id="address" type="text" placeholder="e.g. behind lowlands hotel">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>House number/Family name/Further description</label>
+                            <input class="form-control" id="house_details" type="text" placeholder="e.g. land hostels, room 2">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Delivery type</label>
+                            <select id="delivery_type" class="custom-select">
+                                <option selected>pick on supermarket</option>
+                                <option>station delivery</option>
+                                <option>door delivery</option>
+                            </select>
                         </div>
                     </div>
-                    
-                    <button class="btn btn-block btn-primary font-weight-bold py-3" onclick="window.location.href='/transact';">Place Orders</button>
-
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Order Total</span></h5>
+                <div class="bg-light p-30 mb-5">
+                    <div class="border-bottom">
+                        <h6 class="mb-3">Products</h6>
+                        {% if items %}
+                        {% for item in items %}
+                        <div class="d-flex justify-content-between">
+                            <p>{{ item[1] }}</p>
+                            {% set prices = [item[3]] %}
+                            {% if item[4] %}
+                                {% set prices = prices + [item[4]] %}
+                            {% endif %}
+                            {% if item[5] %}
+                                {% set prices = prices + [item[5]] %}
+                            {% endif %}
+                            {% set best_price = prices | min %}
+                            <p>ksh {{ best_price * item[6] }}</p>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if items %}
+                    <div class="border-bottom pt-3 pb-2">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h6>Subtotal</h6>
+                            <h6>ksh {{ total }}</h6>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <h6 class="font-weight-medium">Shipping</h6>
+                            <h6 class="font-weight-medium">ksh 0</h6>
+                        </div>
+                    </div>
+                    <div class="pt-2">
+                        <div class="d-flex justify-content-between mt-2">
+                            <h5>Total</h5>
+                            <h5 id="total_amount">ksh {{ total }}</h5>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="mb-5">
+                    <h5 class="section-title position-relative text-uppercase mb-3"><span class="bg-secondary pr-3">Payment</span></h5>
+                    <div class="bg-light p-30">
+                        <div class="form-group">
+                            <div class="custom-control custom-radio">
+                                <input type="text" id="payment_method" value="mpesa" class="custom-control-input" name="payment">
+                                <label class="custom-control-label" for="mpesa">M-pesa</label>
+                            </div>
+                        </div>
+                        <button class="btn btn-block btn-primary font-weight-bold py-3" type="submit">Place Orders</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-</form>
+    </form>
+    <div id="loading-spinner" style="display: none;">
+        <p>Loading... Please wait.</p>
+    </div>
+    
+    <script>
+        document.getElementById("pform").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            document.getElementById('loading-spinner').style.display = 'block';
+    
+            const formData = {
+                full_name: document.getElementById("full_name").value,
+                email: document.getElementById("email").value,
+                phone_number: document.getElementById("phone_number").value,
+                station: document.getElementById("station").value,
+                address: document.getElementById("address").value,
+                house_details: document.getElementById("house_details").value,
+                delivery_type: document.getElementById("delivery_type").value,
+                payment_method: document.getElementById("payment_method").value,
+                total_amount: document.getElementById("total_amount").textContent.replace('ksh', '').trim() // Extract the total amount value
+            };
+    
+            try {
+                const response = await fetch('/derivery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+    
+                document.getElementById('loading-spinner').style.display = 'none';
+    
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Order placed successfully!');
+                    window.location.href = '/transact';
+                } else {
+                    alert('Error placing the order.');
+                }
+            } catch (error) {
+                alert('Error:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
+        });
+    </script>
+    

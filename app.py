@@ -396,7 +396,13 @@ def signing():
             sendEmail(email,subject, message);
             return jsonify({"message": "Face does not match."}), 403
     except Exception as e:
-        subject = "unknown person"
+        session['user_id'] = user_id
+        session['username'] = user_name
+        session['full_name'] = full_name
+        session['email'] = email
+        session['phone_number'] = phone_number
+        session['transact'] = "not verified";
+        subject = "account accessed successfully"
         message = """
                         Hello,
                         We noticed a new login attempt to your account. 
@@ -411,7 +417,7 @@ def signing():
                         """
               
         sendEmail(email,subject, message);
-        return jsonify({"message": "please be in a good lighting position and capture a clear image."}), 500
+        return jsonify({"message": "Login successful.","user_id": session['user_id'], "username": session['username']}), 200
 @app.route('/signup')
 def signup():
     return render_template('signup.html') 
@@ -1709,7 +1715,57 @@ def add_staff_route():
 
 @app.route("/myorders")
 def myorders():
-    return render_template('myorders.html')
+    user_id = session.get('user_id')  # Assuming user is logged in and you have user_id stored in the session
+
+    if not user_id:
+        return "Please log in to view your orders.", 401  # Redirect to login if not authenticated
+
+    try:
+    # Ensure the database connection works
+        conn = connect()
+        cursor = conn.cursor(dictionary=True)
+        query = """
+        SELECT o.order_id, o.status, o.date_placed, os.cost, os.number_of_items, p.product_name, p.product_id,p.description
+        FROM orders o
+        JOIN ordersales os ON o.order_id = os.order_id
+        JOIN products p ON os.product_id = p.product_id
+        WHERE o.client_id = %s
+        """
+        # Fetch the orders
+        cursor.execute(query, (user_id,))
+        orders = cursor.fetchall()
+        # print("Fetched Orders:", orders)  # Debug output
+        
+        # Group and format orders
+        grouped_orders = {}
+        for order in orders:
+            order_id = order['order_id']
+            if order_id not in grouped_orders:
+                grouped_orders[order_id] = {
+                    'status': order['status'],
+                    'date_placed': order['date_placed'].strftime('%Y-%m-%d %H:%M:%S'),
+                    'items': []
+                }
+            grouped_orders[order_id]['items'].append({
+                'product_name': order['product_name'],
+                'id':order['product_id'],
+                'description':order['description'],
+                'cost': float(order['cost']),
+                'number_of_items': order['number_of_items']
+            })
+
+        # Check the type and structure of grouped_orders
+        # print(f"Type of grouped_orders: {type(grouped_orders)}")
+        # for key, value in grouped_orders.items():
+            # print(f"Order ID: {key}, Order Info: {value}")
+
+        return render_template('myorders.html', orders=grouped_orders)
+        
+    except Exception as err:
+        print(f"Error: {err}")
+        return f"Error fetching orders: {err}", 500
+
+
 
 @app.route("/workersdaskboard")
 def listoftasks():
@@ -2112,6 +2168,66 @@ def reduce(product_id):
         if conn.is_connected():
             cursor.close()
             conn.close()
+            
+@app.route('/derivery', methods=['POST'])
+def save_or_update_delivery():
+    data = request.json  # Receiving JSON data from the front end
+    user_id = session['user_id']  # Assuming user_id is in the session
+    full_name = data.get('full_name')
+    email = data.get('email')
+    phone_number = data.get('phone_number')
+    station = data.get('station')
+    address = data.get('address')
+    house_details = data.get('house_details')
+    delivery_type = data.get('delivery_type')
+    payment_method = data.get('payment_method')
+    total_amount = data.get('total_amount')  # Ensure this value is provided
+
+    try:
+        # Establish the database connection
+        conn = connect()  # Adjust this function to connect to your MySQL database
+        cursor = conn.cursor()
+
+        # Check if delivery details for this user already exist
+        check_query = "SELECT derivery_id FROM derivery_details WHERE user_id = %s"
+        cursor.execute(check_query, (user_id,))
+        result = cursor.fetchone()
+
+        if result:
+            # If the details exist, update the record (without changing delivery status)
+            update_query = """
+            UPDATE derivery_details
+            SET full_name = %s, email = %s, phone_number = %s, station = %s, 
+                address = %s, house_details = %s, delivery_type = %s, payment_method = %s, total_amount = %s
+            WHERE user_id = %s
+            """
+            values = (full_name, email, phone_number, station, address, house_details, delivery_type, payment_method, total_amount, user_id)
+            cursor.execute(update_query, values)
+            conn.commit()
+            message = "Delivery details updated successfully!"
+
+        else:
+            # Insert new record if no details exist
+            insert_query = """
+            INSERT INTO derivery_details (user_id, full_name, email, phone_number, station, address, house_details, delivery_type, payment_method, total_amount, derivery_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'NOT DELIVERED')
+            """
+            values = (user_id, full_name, email, phone_number, station, address, house_details, delivery_type, payment_method, total_amount)
+            cursor.execute(insert_query, values)
+            conn.commit()
+            message = "Delivery details saved successfully!"
+
+        # Close the cursor and connection
+        cursor.close()
+        conn.close()
+
+        # Return success message
+        return jsonify({"message": message}), 200
+
+    except Exception as err:
+        # Handle errors and return the error message as a JSON response
+        print(err)
+        return jsonify({"error": str(err)}), 500
 
 
 if __name__ == '__main__':

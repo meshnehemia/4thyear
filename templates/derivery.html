@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Delivery Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #f9f9f9;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #333;
+            padding: 10px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav a:hover {
+            background-color: #575757;
+            border-radius: 5px;
+        }
+
+        .section {
+            display: none;
+            margin-top: 20px;
+            width: 90%;
+            align-items: center;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .delivery-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .delivery-btn:hover {
+            background-color: #45a049;
+        }
+
+        @media (max-width: 768px) {
+            .section {
+                width: 100%;
+            }
+        }
+
+        #analytics h2 {
+            text-align: center;
+        }
+
+        #analytics {
+            padding: 10px;
+            margin: 5%;
+        }
+
+        .panel {
+            background-color: white;
+            box-sizing: border-box;
+            box-shadow: 10px 10px 20px 5px rgb(94, 91, 91);
+            padding: 20px 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        #analytics div h3 {
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        #analytics canvas {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #fff;
+            padding: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        Delivery Manager Interface
+    </header>
+
+    <nav>
+        <a href="#" onclick="showSection('deliveries')">Deliveries</a>
+        <a href="#" onclick="showSection('requests')">Requests Sent</a>
+        <a href="#" onclick="showSection('accepted')">Accepted Deliveries</a>
+        <a href="#" onclick="showSection('picked')">Picked Packages</a>
+        <a href="#" onclick="showSection('delivered')">Delivered Packages</a>
+        <a href="#" onclick="showSection('allOrders')">All Orders</a>
+        <a href="#" onclick="showSection('analytics'); updateAnalytics();">Analytics</a>
+    </nav>
+
+    <div id="analytics" class="section">
+        <h2>Analytics Dashboard</h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div class="panel" onclick="showSection('deliveries')">
+                <h3>Total Deliveries</h3>
+                <p id="totalDeliveries">0</p>
+            </div>
+            <div class="panel" onclick="showSection('requests')">
+                <h3>Requests Sent</h3>
+                <p id="totalRequestsSent">0</p>
+            </div>
+            <div class="panel" onclick="showSection('accepted')">
+                <h3>Accepted Deliveries</h3>
+                <p id="totalAccepted">0</p>
+            </div>
+            <div class="panel" onclick="showSection('picked')">
+                <h3>Picked Packages</h3>
+                <p id="totalPicked">0</p>
+            </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-around;">
+            <div style="width: 30%; margin-top: 20px;">
+                <canvas id="requestChart" width="200" height="200"></canvas>
+            </div>
+            <div style="width: 30%; margin-top: 20px;">
+                <canvas id="completionChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="deliveries" class="section active">
+            <h2>Deliveries List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>In Transit</td>
+                        <td>123 Main St</td>
+                        <td><button class="delivery-btn" onclick="updateStatus(1)">Mark as Delivered</button></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Out for Delivery</td>
+                        <td>456 Oak Ave</td>
+                        <td><button class="delivery-btn" onclick="updateStatus(2)">Mark as Delivered</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="requests" class="section">
+            <h2>Requests Sent</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>3</td>
+                        <td>Request Sent</td>
+                        <td>789 Pine St</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="accepted" class="section">
+            <h2>Accepted Deliveries</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>4</td>
+                        <td>Accepted</td>
+                        <td>101 Maple St</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="picked" class="section">
+            <h2>Picked Packages</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>5</td>
+                        <td>Picked</td>
+                        <td>222 Elm St</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="delivered" class="section">
+            <h2>Delivered Packages</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Delivered</td>
+                        <td>123 Main St</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="allOrders" class="section">
+            <h2>All Orders</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Package ID</th>
+                        <th>Status</th>
+                        <th>Delivery Place</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Delivered</td>
+                        <td>123 Main St</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>In Transit</td>
+                        <td>456 Oak Ave</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Request Sent</td>
+                        <td>789 Pine St</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const sections = document.querySelectorAll('.section');
+        let totalRequestsSent = 1;
+        let totalDeliveries = 2;
+        let totalAccepted = 1;
+        let totalPicked = 1;
+
+        function showSection(sectionId) {
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function updateStatus(packageId) {
+            alert('Package ' + packageId + ' marked as delivered.');
+            // Additional status update logic here
+        }
+
+        function updateAnalytics() {
+            document.getElementById('totalRequestsSent').textContent = totalRequestsSent;
+            document.getElementById('totalDeliveries').textContent = totalDeliveries;
+            document.getElementById('totalAccepted').textContent = totalAccepted;
+            document.getElementById('totalPicked').textContent = totalPicked;
+
+            const requestChart = new Chart(document.getElementById('requestChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Requests Sent', 'Accepted', 'Picked', 'Delivered'],
+                    datasets: [{
+                        data: [totalRequestsSent, totalAccepted, totalPicked, totalDeliveries],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+
+            const completionChart = new Chart(document.getElementById('completionChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [totalDeliveries, totalRequestsSent + totalAccepted + totalPicked],
+                        backgroundColor: ['#4CAF50', '#FF6384']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    </script>
+</body>
+</html>

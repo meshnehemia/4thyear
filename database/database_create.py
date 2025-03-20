@@ -5,9 +5,9 @@ conn= ''
 try:
     conn = mysql.connector.connect(
         host="127.0.0.1",         # e.g., 'localhost' or '127.0.0.1'
-        user="root",     # your MySQL username
-        password="", # your MySQL password
-        database="supermarket"  # your database name
+        user="root",              # your MySQL username
+        password="",              # your MySQL password
+        database="supermarket"    # your database name
     )
     
     cursor = conn.cursor()
@@ -88,7 +88,7 @@ try:
         ON DELETE CASCADE
     );'''
     cursor.execute(feature)
-    print("Table created successfully.")
+    print("Table created featured successfully.")
 
     cart ="""CREATE TABLE IF NOT EXISTS Cart (
     cart_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -96,8 +96,8 @@ try:
     user_id INT NOT NULL,
     date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
     number_of_items INT NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES Products(product_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    FOREIGN KEY (product_id) REFERENCES products(product_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
     """
     cursor.execute(cart)
@@ -131,7 +131,7 @@ try:
     product_id INT,
     image_data BLOB NOT NULL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
         );
     '''
     cursor.execute(product_images)
@@ -142,7 +142,7 @@ try:
     name_of_staff VARCHAR(100) NOT NULL,  -- Name of the staff member
     phone_number VARCHAR(15) NOT NULL,    -- Phone number
     email_address VARCHAR(100) UNIQUE NOT NULL,  -- Unique email address, required
-    level VARCHAR(50),                    -- Staff's level (e.g., junior, senior, manager)
+    level VARCHAR(50),                    -- Staff's level (e.g., junior, senior, manager
     date_employed DATE DEFAULT CURRENT_DATE,  -- Automatically set employment date to current date if not provided
     status VARCHAR(50) DEFAULT 'active',      -- Employment status, default is 'active'
     id_number VARCHAR(20) UNIQUE NOT NULL   -- Unique identification number for the staff member
@@ -257,6 +257,29 @@ try:
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 );
 '''
+
+
+    derivery = '''CREATE TABLE derivery_details (
+    derivery_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(15) NOT NULL,
+    station VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    house_details VARCHAR(255),
+    delivery_type VARCHAR(100) NOT NULL,
+    payment_method VARCHAR(100) NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    derivery_status VARCHAR(50) NOT NULL DEFAULT 'NOT DELIVERED', -- New column for delivery status
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+'''
+    cursor.execute(derivery)
+    print("table derivery created")
     cursor.execute(orderself)
     print("table orderself successfully created")
 except mysql.connector.Error as err:
