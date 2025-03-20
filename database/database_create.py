@@ -259,9 +259,10 @@ try:
 '''
 
 
-    derivery = '''CREATE TABLE derivery_details (
+    derivery = '''CREATE TABLE if not exists derivery_details (
     derivery_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    order_id INT NULL,  -- Allow order_id to be NULL
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone_number VARCHAR(15) NOT NULL,
@@ -275,8 +276,10 @@ try:
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE SET NULL  -- Foreign key allowing NULL
 );
+
 '''
     cursor.execute(derivery)
     print("table derivery created")

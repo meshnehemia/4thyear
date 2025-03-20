@@ -77,7 +77,6 @@
         }
 
         .delivery-btn {
-            background-color: #4CAF50;
             border: none;
             color: white;
             padding: 10px 20px;
@@ -87,6 +86,12 @@
             margin: 4px 2px;
             cursor: pointer;
             border-radius: 5px;
+        }
+        .delete{
+            background-color: red;
+        }
+        .success{
+            background-color: #45a049;
         }
 
         .delivery-btn:hover {
@@ -137,20 +142,19 @@
     </header>
 
     <nav>
-        <a href="#" onclick="showSection('deliveries')">Deliveries</a>
-        <a href="#" onclick="showSection('requests')">Requests Sent</a>
-        <a href="#" onclick="showSection('accepted')">Accepted Deliveries</a>
-        <a href="#" onclick="showSection('picked')">Picked Packages</a>
-        <a href="#" onclick="showSection('delivered')">Delivered Packages</a>
-        <a href="#" onclick="showSection('allOrders')">All Orders</a>
-        <a href="#" onclick="showSection('analytics'); updateAnalytics();">Analytics</a>
+        <a href="#" onclick="showSection('requests'); fetchRequests()">Requests Sent</a>
+        <a href="#" onclick="showSection('accepted'); fetchAcceptedDeliveries()">Accepted Deliveries</a>
+        <a href="#" onclick="showSection('picked'); fetchPickedDeliveries()">Picked Packages</a>
+        <a href="#" onclick="showSection('delivered'); fetchDelivered()">Delivered Packages</a>
+        <a href="#" onclick="showSection('allOrders'); fetchDeliveries()">All Orders</a>
+        <a href="#" onclick="showSection('analytics'); updateAnalytics()">Analytics</a>
     </nav>
 
     <div id="analytics" class="section">
         <h2>Analytics Dashboard</h2>
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <div class="panel" onclick="showSection('deliveries')">
-                <h3>Total Deliveries</h3>
+                <h3>available Deliveries</h3>
                 <p id="totalDeliveries">0</p>
             </div>
             <div class="panel" onclick="showSection('requests')">
@@ -177,70 +181,41 @@
     </div>
 
     <div class="container">
-        <div id="deliveries" class="section active">
-            <h2>Deliveries List</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>In Transit</td>
-                        <td>123 Main St</td>
-                        <td><button class="delivery-btn" onclick="updateStatus(1)">Mark as Delivered</button></td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Out for Delivery</td>
-                        <td>456 Oak Ave</td>
-                        <td><button class="delivery-btn" onclick="updateStatus(2)">Mark as Delivered</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
         <div id="requests" class="section">
             <h2>Requests Sent</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>deivery method</th>
+                        <th>cancel </th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>3</td>
-                        <td>Request Sent</td>
-                        <td>789 Pine St</td>
-                    </tr>
+                <tbody id="requestsList">
+                   
                 </tbody>
             </table>
         </div>
 
-        <div id="accepted" class="section">
+        <div id="accepted" class="section active">
             <h2>Accepted Deliveries</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>deivery method</th>
+                        <th>cancel </th>
+                        <th>pick</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>4</td>
-                        <td>Accepted</td>
-                        <td>101 Maple St</td>
-                    </tr>
+                <tbody id="AcceptedList">
+                    
                 </tbody>
             </table>
         </div>
@@ -251,16 +226,14 @@
                 <thead>
                     <tr>
                         <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>derivery type</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>5</td>
-                        <td>Picked</td>
-                        <td>222 Elm St</td>
-                    </tr>
+                <tbody id="pickedList">
+                   
                 </tbody>
             </table>
         </div>
@@ -271,16 +244,14 @@
                 <thead>
                     <tr>
                         <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>deivery method</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Delivered</td>
-                        <td>123 Main St</td>
-                    </tr>
+                <tbody id="deriveryList">
+                   
                 </tbody>
             </table>
         </div>
@@ -291,26 +262,15 @@
                 <thead>
                     <tr>
                         <th>Package ID</th>
-                        <th>Status</th>
-                        <th>Delivery Place</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>deivery method</th>
+                        <th>request order</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Delivered</td>
-                        <td>123 Main St</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>In Transit</td>
-                        <td>456 Oak Ave</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>Request Sent</td>
-                        <td>789 Pine St</td>
-                    </tr>
+                <tbody id="deliveriesList">
+                    
                 </tbody>
             </table>
         </div>
@@ -319,10 +279,24 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const sections = document.querySelectorAll('.section');
-        let totalRequestsSent = 1;
-        let totalDeliveries = 2;
-        let totalAccepted = 1;
-        let totalPicked = 1;
+        let totalRequestsSent = 0;
+        let totalDeliveries = 0;
+        let totalAccepted = 0;
+        let totalPicked = 0;
+
+        function fetchAllDeliveryCounts() {
+        fetch('/delivery-status-counts')
+            .then(response => response.json())
+            .then(data => {
+                // Update the counts in the DOM
+                totalRequestsSent = data.totalRequestsSent;
+                totalDeliveries  = data.totalDeliveries;
+                totalAccepted = data.totalAccepted;
+                totalPicked = data.totalPicked;
+            })
+            .catch(error => console.error('Error fetching delivery status counts:', error));
+        }
+        fetchAllDeliveryCounts();
 
         function showSection(sectionId) {
             sections.forEach(section => {
@@ -370,6 +344,134 @@
                 }
             });
         }
+
+        function fetchDeliveries() {
+            fetch('/deliveries')
+                .then(response => response.json())
+                .then(data => {
+                    const deliveriesList = document.getElementById('deliveriesList');
+                    deliveriesList.innerHTML = ''; // Clear existing content
+                    data.forEach(delivery => {
+                        deliveriesList.innerHTML += `
+                            <tr>
+                                <td>${delivery[0]}</td>
+                                <td>${delivery[6]}</td>
+                                <td>${delivery[7]}</td>
+                                <td>${delivery[8]}</td>
+                                <td>${delivery[9]}</td>
+                                <td><button class="delivery-btn success" onclick="updatePackageStatus(${delivery[0]},'REQUEST SENT')">request order</button></td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => console.error('Error fetching deliveries:', error));
+            }
+            function updatePackageStatus(packageId, status) {
+                fetch(`/mark-status/${status}/${packageId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        // Refresh the data depending on which section you're in
+                        if (status === 'DELIVERED') {
+                            fetchDeliveries(); // If the status is 'DELIVERED', refresh deliveries list
+                        } else if (status === 'PICKED') {
+                            fetchPickedPackages(); // Refresh picked packages
+                        } else if (status === 'ACCEPTED') {
+                            fetchAcceptedDeliveries(); // Refresh accepted deliveries
+                        }
+                        // Add other statuses as needed
+                    })
+                    .catch(error => console.error('Error updating package status:', error));
+                }
+                function fetchRequests() {
+                    fetch('/requests')
+                        .then(response => response.json())
+                        .then(data => {
+                         
+                            const requestsList = document.getElementById('requestsList');
+                            requestsList.innerHTML = ''; // Clear existing content
+                            data.forEach(request => {
+                                requestsList.innerHTML += `
+                                    <tr>
+                                        <td>${request[0]}</td>
+                                        <td>${request[6]}</td>
+                                        <td>${request[7]}</td>
+                                        <td>${request[8]}</td>
+                                        <td>${request[9]}</td>
+                                        <td><button class="delivery-btn delete" onclick="updatePackageStatus(${request[0]},'NOT DELIVERED')">cancel request</button></td>
+
+                                    </tr>
+                                `;
+                            });
+                        })
+                        .catch(error => console.error('Error fetching requests:', error));
+                }
+                function fetchAcceptedDeliveries() {
+                    fetch('/accepted')
+                        .then(response => response.json())
+                        .then(data => {
+                            const AcceptedList = document.getElementById('AcceptedList');
+                            AcceptedList.innerHTML = ''; // Clear existing content
+                            data.forEach(request => {
+                                AcceptedList.innerHTML += `
+                                    <tr>
+                                        <td>${request[0]}</td>
+                                        <td>${request[6]}</td>
+                                        <td>${request[7]}</td>
+                                        <td>${request[8]}</td>
+                                        <td>${request[9]}</td>
+                                        <td><button class="delivery-btn delete" onclick="updatePackageStatus(${request[0]},'NOT DELIVERED')">cancel request</button></td>
+                                        <td><button class="delivery-btn success" onclick="updatePackageStatus(${request[0]},'PICKED')">Picked </button></td>
+
+                                    </tr>
+                                `;
+                            });
+                        })
+                        .catch(error => console.error('Error fetching requests:', error));
+                }
+
+                function fetchPickedDeliveries() {
+                    fetch('/picked')
+                        .then(response => response.json())
+                        .then(data => {
+                            const pickedList = document.getElementById('pickedList');
+                            pickedList.innerHTML = ''; // Clear existing content
+                            data.forEach(request => {
+                                pickedList.innerHTML += `
+                                    <tr>
+                                        <td>${request[0]}</td>
+                                        <td>${request[6]}</td>
+                                        <td>${request[7]}</td>
+                                        <td>${request[8]}</td>
+                                        <td>${request[9]}</td>
+                                    </tr>
+                                `;
+                            });
+                        })
+                        .catch(error => console.error('Error fetching requests:', error));
+                }
+               
+                function fetchDelivered() {
+                    fetch('/delivered')
+                        .then(response => response.json())
+                        .then(data => {
+                            const deriveryList = document.getElementById('deriveryList');
+                            deriveryList.innerHTML = ''; // Clear existing content
+                            data.forEach(request => {
+                                deriveryList.innerHTML += `
+                                    <tr>
+                                        <td>${request[0]}</td>
+                                        <td>${request[6]}</td>
+                                        <td>${request[7]}</td>
+                                        <td>${request[8]}</td>
+                                        <td>${request[9]}</td>
+                                    </tr>
+                                `;
+                            });
+                        })
+                        .catch(error => console.error('Error fetching requests:', error));
+                }
+
     </script>
 </body>
 </html>

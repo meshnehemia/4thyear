@@ -88,8 +88,8 @@ def sendEmail(email, subject,body):
 
     # Create the email
     msg = MIMEMultipart()
-    msg['From'] = "meshnehemia7@gmail.com"
-    msg['To'] = "richardkeith233@gmail.com"
+    msg['From'] = "intelligence management system"
+    msg['To'] = recipient_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))  # Attach HTML body
 

@@ -3,6 +3,7 @@ from facedetection import gen_frames, detect_face , genandface
 from deepface import DeepFace
 from datetime import datetime
 import io
+from derivery import init_derivery_routes
 import cv2
 from transactionemails import generate_order_receipt
 import pytesseract
@@ -31,6 +32,9 @@ def allowed_file(filename):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)  # Required for session
   # needed for flash messages
+
+# Initialize delivery routes from derivery_routes.py
+init_derivery_routes(app)
 
 def categories():
     conn = connect()
@@ -1291,6 +1295,13 @@ def place_order():
             query_ordersales = '''INSERT INTO ordersales (order_id, product_id, cost, number_of_items)
                                   VALUES (%s, %s, %s, %s)'''
             cursor.execute(query_ordersales, (order_id, product_id, cost, number_of_items))
+            update_query = """
+                UPDATE derivery_details
+                SET order_id = %s
+                WHERE user_id = %s AND order_id IS NULL
+                """
+            cursor.execute(update_query, (order_id, user_id))
+            conn.commit()
 
             # Insert into sales table (optional, if you want to track individual product sales)
             query_sales = '''INSERT INTO sales (product_id, client_id, sale_type, amount_bought, profit_made)
@@ -2189,7 +2200,7 @@ def save_or_update_delivery():
         cursor = conn.cursor()
 
         # Check if delivery details for this user already exist
-        check_query = "SELECT derivery_id FROM derivery_details WHERE user_id = %s"
+        check_query = "SELECT derivery_id FROM derivery_details WHERE user_id = %s AND order_id IS NULL"
         cursor.execute(check_query, (user_id,))
         result = cursor.fetchone()
 
@@ -2228,7 +2239,9 @@ def save_or_update_delivery():
         # Handle errors and return the error message as a JSON response
         print(err)
         return jsonify({"error": str(err)}), 500
-
+@app.route('/derivery')
+def derivery():
+    return render_template('derivery.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
