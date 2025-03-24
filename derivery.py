@@ -128,9 +128,9 @@ def init_derivery_routes(app):
             update_query = """
             UPDATE derivery_details 
             SET derivery_status = %s 
-            WHERE derivery_id = %s AND user_id = %s
+            WHERE derivery_id = %s
             """
-            cursor.execute(update_query, (status, package_id, user_id))
+            cursor.execute(update_query, (status, package_id))
             conn.commit()
             conn.close()
 

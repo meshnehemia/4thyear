@@ -9,7 +9,8 @@
         <div class="col-lg-4 col-6 text-left">
             <form action="">
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Search for products">
+                    <input type="text" class="form-control" placeholder="Search for products" id="searchInput">
+                    
                     <div class="input-group-append">
                         <span class="input-group-text bg-transparent text-primary">
                             <i class="fa fa-search"></i>
@@ -38,3 +39,34 @@
         </div>
     </div>
 </div>
+<script>
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const currentFile = window.location.pathname;
+        if (currentFile.includes('/shop')) {
+            fetchsearchproduct(this.value);
+        } else {
+            window.location.href="/shop";
+        }
+    //   const adElements = document.querySelectorAll('.searching');
+    //     if (adElements.length > 0) {
+    //         adElements.forEach(ad => ad.remove());
+    //     }
+    });
+    function fetchsearchproduct(searchTerm) {
+    // Construct the API URL with the search query
+    let apiUrl = '/api/searchproducts';
+    if (searchTerm) {
+      apiUrl += `?search=${encodeURIComponent(searchTerm)}`;
+    }
+    // Fetch the products from the API
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(products => {
+        // Call displayProducts with the returned products
+        displayProducts(products);
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error);
+      });
+  }
+  </script>

@@ -285,6 +285,24 @@ try:
     print("table derivery created")
     cursor.execute(orderself)
     print("table orderself successfully created")
+    payments= '''CREATE TABLE IF NOT EXISTS PaymentsMpesa (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,    -- Auto-incrementing primary key for each payment
+    merchant_request_id VARCHAR(255) NOT NULL,    -- ID for the merchant request
+    checkout_request_id VARCHAR(255) NOT NULL,    -- ID for the checkout request
+    amount DECIMAL(10, 2) NOT NULL,               -- Payment amount
+    phone_number VARCHAR(15) NOT NULL,            -- Phone number associated with the Mpesa transaction
+    transaction_datetime DATETIME NOT NULL,       -- Date and time of the transaction
+    order_id INT,                                 -- Foreign key to reference orders
+    transaction_id VARCHAR(255) NOT NULL,         -- Unique transaction ID
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE  -- Foreign key to orders table
+);
+
+'''
+    cursor.execute(payments)
+    print("payments table created ")
+
+
+
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
         print("Something is wrong with your user name or password")

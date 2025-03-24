@@ -31,6 +31,7 @@
 
         nav {
             display: flex;
+            position: relative;
             justify-content: space-around;
             background-color: #333;
             padding: 10px;
@@ -133,7 +134,39 @@
             background-color: #fff;
             padding: 10px;
         }
+        nav a {
+            position: relative;
+            display: inline-block;
+            margin-right: 20px;
+        }
 
+        .nav-link span {
+            position: absolute;
+            top: -10px;
+            right: -15px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .nav-link a {
+            text-decoration: none;
+            color: black;
+        }
+        .tp{
+            position: absolute;
+            top: -10px;
+            right: -15px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -142,15 +175,15 @@
     </header>
 
     <nav>
-        <a href="#" onclick="showSection('requests'); fetchRequests()">Requests Sent</a>
-        <a href="#" onclick="showSection('accepted'); fetchAcceptedDeliveries()">Accepted Deliveries</a>
-        <a href="#" onclick="showSection('picked'); fetchPickedDeliveries()">Picked Packages</a>
-        <a href="#" onclick="showSection('delivered'); fetchDelivered()">Delivered Packages</a>
-        <a href="#" onclick="showSection('allOrders'); fetchDeliveries()">All Orders</a>
-        <a href="#" onclick="showSection('analytics'); updateAnalytics()">Analytics</a>
+        <a href="#" onclick="showSection('requests'); fetchRequests()">Requests Sent <span class="tp" id="rnumber">0</span></a>
+        <a href="#" onclick="showSection('accepted'); fetchAcceptedDeliveries()">Accepted Deliveries<span class="tp" id="anumber">0</span></a>
+        <a href="#" onclick="showSection('picked'); fetchPickedDeliveries()">Picked Packages<span class="tp" id="pnumber">0</span></a>
+        <a href="#" onclick="showSection('delivered'); fetchDelivered()">Delivered Packages<span class="tp" id="dnumber">0</span></a>
+        <a href="#" onclick="showSection('allOrders'); fetchDeliveries()">All Orders<span class="tp" id="tnumber">0</span></a>
+        <a href="#" onclick="showSection('analytics');">Analytics</a>
     </nav>
 
-    <div id="analytics" class="section">
+    <div id="analytics" class="section active">
         <h2>Analytics Dashboard</h2>
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <div class="panel" onclick="showSection('deliveries')">
@@ -200,7 +233,7 @@
             </table>
         </div>
 
-        <div id="accepted" class="section active">
+        <div id="accepted" class="section">
             <h2>Accepted Deliveries</h2>
             <table>
                 <thead>
@@ -293,6 +326,42 @@
                 totalDeliveries  = data.totalDeliveries;
                 totalAccepted = data.totalAccepted;
                 totalPicked = data.totalPicked;
+                document.getElementById('totalRequestsSent').textContent = totalRequestsSent;
+                document.getElementById('totalDeliveries').textContent = totalDeliveries;
+                document.getElementById('totalAccepted').textContent = totalAccepted;
+                document.getElementById('totalPicked').textContent = totalPicked;
+                document.getElementById('rnumber').textContent = totalRequestsSent;
+                document.getElementById('dnumber').textContent = totalDeliveries;
+                document.getElementById('pnumber').textContent = totalDeliveries;
+                document.getElementById('anumber').textContent = totalAccepted;
+                fetchDeliveries();
+                const requestChart = new Chart(document.getElementById('requestChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Requests Sent', 'Accepted', 'Picked', 'Delivered'],
+                    datasets: [{
+                        data: [totalRequestsSent, totalAccepted, totalPicked, totalDeliveries],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+
+            const completionChart = new Chart(document.getElementById('completionChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [totalDeliveries, totalRequestsSent + totalAccepted + totalPicked],
+                        backgroundColor: ['#4CAF50', '#FF6384']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
             })
             .catch(error => console.error('Error fetching delivery status counts:', error));
         }
@@ -311,11 +380,16 @@
         }
 
         function updateAnalytics() {
+            fetchAllDeliveryCounts();
             document.getElementById('totalRequestsSent').textContent = totalRequestsSent;
             document.getElementById('totalDeliveries').textContent = totalDeliveries;
             document.getElementById('totalAccepted').textContent = totalAccepted;
             document.getElementById('totalPicked').textContent = totalPicked;
-
+            document.getElementById('rnumber').textContent = totalRequestsSent;
+            document.getElementById('dnumber').textContent = totalDeliveries;
+            document.getElementById('pnumber').textContent = totalDeliveries;
+            document.getElementById('anumber').textContent = totalAccepted;
+            
             const requestChart = new Chart(document.getElementById('requestChart'), {
                 type: 'pie',
                 data: {
@@ -349,6 +423,7 @@
             fetch('/deliveries')
                 .then(response => response.json())
                 .then(data => {
+                    document.getElementById('tnumber').textContent = data.length;
                     const deliveriesList = document.getElementById('deliveriesList');
                     deliveriesList.innerHTML = ''; // Clear existing content
                     data.forEach(delivery => {
@@ -380,6 +455,7 @@
                             fetchAcceptedDeliveries(); // Refresh accepted deliveries
                         }
                         // Add other statuses as needed
+                        window.location.href ="/derivery"
                     })
                     .catch(error => console.error('Error updating package status:', error));
                 }
@@ -420,8 +496,8 @@
                                         <td>${request[7]}</td>
                                         <td>${request[8]}</td>
                                         <td>${request[9]}</td>
-                                        <td><button class="delivery-btn delete" onclick="updatePackageStatus(${request[0]},'NOT DELIVERED')">cancel request</button></td>
-                                        <td><button class="delivery-btn success" onclick="updatePackageStatus(${request[0]},'PICKED')">Picked </button></td>
+                                        <td><button class="delivery-btn delete" onclick="updatePackageStatus(${request[0]},'NOT DELIVERED')">cancel Derivery</button></td>
+                                        <td><button class="delivery-btn success" onclick="updatePackageStatus(${request[0]},'PICKED')">pick the package </button></td>
 
                                     </tr>
                                 `;

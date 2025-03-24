@@ -1,3 +1,5 @@
+import random
+import string
 from flask import Flask, render_template, send_file, Response, jsonify, request, redirect, url_for, session
 from facedetection import gen_frames, detect_face , genandface
 from deepface import DeepFace
@@ -149,6 +151,35 @@ def get_products():
 
     return jsonify(products)
 
+@app.route('/api/searchproducts', methods=['GET'])
+def search_products():
+    search_query = request.args.get('search', default='', type=str)  # Get the search term from the frontend input
+
+    conn = connect()
+    cursor = conn.cursor(dictionary=True)
+
+    # Modify the SQL query to include a WHERE clause if search_query is provided
+    if search_query:
+        search_query = f"%{search_query}%"  # Prepare the search query for SQL LIKE
+        cursor.execute("""
+            SELECT product_id AS id, product_name AS name, description, price 
+            FROM products
+            WHERE product_name LIKE %s OR description LIKE %s
+        """, (search_query, search_query))
+    else:
+        # If no search query, return all products
+        cursor.execute("""
+            SELECT product_id AS id, product_name AS name, description, price 
+            FROM products
+        """)
+
+    products = cursor.fetchall()
+    for product in products:
+        product['image'] = url_for('productsphoto', product_id=product['id'])
+        product['oldPrice'] = None  # You can calculate old price here if needed
+        product['rating'] = round(3.5 + (5.0 - 3.5) * (cursor.rowcount / 10), 1)  # Example rating calculation
+
+    return jsonify(products)
 
 # featured products 
 def featured():
@@ -174,7 +205,7 @@ def feature():
 def home():
     session['user_id'] = 6
     session['username'] = "user_name"
-    session['full_name'] = "full_name"
+    session['full_name'] = "full_name" 
     session['email'] = "meshnehemia7@gmail.com"
     session['phone_number'] = 254757316903
     session['transact'] = "not verified";
@@ -552,7 +583,10 @@ def shelf_payment():
         return jsonify({"success": False, "message": "Phone number is missing"}), 400
 
     phone_number = data['phoneNumber']
-    result = send_mpesa_payment(phone_number)
+    digits = string.digits  # This contains digits 0-9
+    random_digits = ''.join(random.choice(digits) for _ in range(8))
+
+    result = send_mpesa_payment(phone_number,random_digits, 1)
     if result["status"] == "success":
         return jsonify({"success": True, "message": result["message"]}), 200
     else:
@@ -1258,7 +1292,6 @@ def get_staffname(staff_id):
 
 @app.route('/placeorder',methods=['POST'])
 def place_order():
-    send_mpesa_payment(session['phone_number'])
     user_id = session['user_id']
     conn = connect()
     if conn is None:
@@ -1732,50 +1765,163 @@ def myorders():
         return "Please log in to view your orders.", 401  # Redirect to login if not authenticated
 
     try:
-    # Ensure the database connection works
+        # Ensure the database connection works
         conn = connect()
         cursor = conn.cursor(dictionary=True)
+
+        # Query to fetch the user's orders along with delivery details
         query = """
-        SELECT o.order_id, o.status, o.date_placed, os.cost, os.number_of_items, p.product_name, p.product_id,p.description
+        SELECT o.order_id, o.status, o.date_placed, os.cost, os.number_of_items, p.product_name, p.product_id, p.description,
+            d.delivery_type, d.derivery_status, d.updated_at, d.derivery_id
         FROM orders o
         JOIN ordersales os ON o.order_id = os.order_id
         JOIN products p ON os.product_id = p.product_id
+        LEFT JOIN derivery_details d ON o.order_id = d.order_id
         WHERE o.client_id = %s
         """
         # Fetch the orders
         cursor.execute(query, (user_id,))
         orders = cursor.fetchall()
-        # print("Fetched Orders:", orders)  # Debug output
-        
+
         # Group and format orders
         grouped_orders = {}
         for order in orders:
             order_id = order['order_id']
+
+            # Check if the order has been paid for
+            payment_query = """
+            SELECT transaction_id
+            FROM PaymentsMpesa
+            WHERE order_id = %s
+            """
+            cursor.execute(payment_query, (order_id,))
+            payment = cursor.fetchone()
+
+            # If payment is found, include the transaction_id; otherwise, mark as "Not paid"
+            payment_status = payment['transaction_id'] if payment and payment['transaction_id'] else "Not paid"
+
             if order_id not in grouped_orders:
                 grouped_orders[order_id] = {
                     'status': order['status'],
                     'date_placed': order['date_placed'].strftime('%Y-%m-%d %H:%M:%S'),
+                    'payment_status': payment_status,
+                    'delivery_type': order['delivery_type'] if orders and order['delivery_type'] else "not Available",
+                    'delivery_status': order['derivery_status'] if orders and order['derivery_status'] else "not Available",
+                    'date_updated': order['updated_at'].strftime('%Y-%m-%d %H:%M:%S') if order['updated_at'] else None,
+                    'package_id':order['derivery_id'],
                     'items': []
                 }
+            
             grouped_orders[order_id]['items'].append({
                 'product_name': order['product_name'],
-                'id':order['product_id'],
-                'description':order['description'],
+                'id': order['product_id'],
+                'description': order['description'],
                 'cost': float(order['cost']),
                 'number_of_items': order['number_of_items']
             })
 
-        # Check the type and structure of grouped_orders
-        # print(f"Type of grouped_orders: {type(grouped_orders)}")
-        # for key, value in grouped_orders.items():
-            # print(f"Order ID: {key}, Order Info: {value}")
-
         return render_template('myorders.html', orders=grouped_orders)
-        
-    except Exception as err:
-        print(f"Error: {err}")
-        return f"Error fetching orders: {err}", 500
 
+    except Exception as e:
+        print(f"Error: {e}")
+        return "An error occurred while fetching your orders.", 500
+
+
+@app.route('/process_payment', methods=['POST'])
+def process_payment():
+    # Check if the user is logged in
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User not logged in"}), 401
+
+    try:
+        # Get the order ID from the request
+        data = request.get_json()
+        order_id = data.get('order_id')
+
+        if not order_id:
+            return jsonify({"error": "Order ID not provided"}), 400
+
+        # Connect to the database
+        conn = connect()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if the order exists and is unpaid
+        check_order_query = """
+        SELECT o.order_id, o.status, p.transaction_id 
+        FROM orders o 
+        LEFT JOIN paymentsmpesa p ON o.order_id = p.order_id 
+        WHERE o.order_id = %s AND o.client_id = %s
+        """
+        cursor.execute(check_order_query, (order_id, user_id))
+        order = cursor.fetchone()
+
+        if not order:
+            return jsonify({"error": "Order not found"}), 404
+
+        delete_payment(order_id)
+        send_mpesa_payment(session['phone_number'],order_id,1)
+        payment_success = True  # Assume the payment was successful for now
+
+        if payment_success:
+          
+            return jsonify({"success": True, "message": "Payment successful", "transaction_id": cursor.lastrowid}), 200
+        else:
+            return jsonify({"error": "Payment failed. Please try again"}), 500
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Database error occurred"}), 500
+
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/check-transaction-status/<int:order_id>', methods=['GET'])
+def check_transaction_status(order_id):
+    try:
+        conn = connect()
+        cursor = conn.cursor(dictionary=True)
+        # Query to check if the payment for the given order_id exists
+        check_payment_query = '''
+        SELECT transaction_id , checkout_request_id
+        FROM PaymentsMpesa 
+        WHERE order_id = %s
+        '''
+        cursor.execute(check_payment_query, (order_id,))
+        payment = cursor.fetchone()
+
+        # If the transaction_id exists, return success
+        if payment:
+            delete_payment(order_id)
+            return jsonify({"success": True, 'message': payment['transaction_id'] ,"error":payment['checkout_request_id']})
+        else:
+            return jsonify({"success": False})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/delete-payment/<int:order_id>', methods=['DELETE'])
+def delete_payment(order_id):
+    try:
+        conn = connect()  # Establish a connection to the database
+        cursor = conn.cursor()
+        # Query to delete the payment record by order_id
+        delete_query = '''
+        DELETE FROM PaymentsMpesa 
+        WHERE order_id = %s AND (transaction_id IS NULL OR transaction_id = '')
+        '''
+        cursor.execute(delete_query, (order_id,))
+        conn.commit()
+
+        # if cursor.rowcount > 0:
+        #     return jsonify({"success": True, "message": f"Payment for order_id {order_id} deleted successfully"}), 200
+        # else:
+        #     return jsonify({"success": False, "message": "No payment found for the given order_id"}), 404
+        return jsonify({"success": True});
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/workersdaskboard")
@@ -2053,7 +2199,6 @@ def retrieve_products_for_staff(staff_id):
                     s.product_id IN (%s)
             """ % ','.join(['%s'] * len(product_ids_list))
             # Dynamically bind multiple product_ids
-        
         cursor.execute(select_product_details_query, product_ids_list)
         products = cursor.fetchall()  # Fetch all product details
 
@@ -2242,6 +2387,92 @@ def save_or_update_delivery():
 @app.route('/derivery')
 def derivery():
     return render_template('derivery.html')
+
+
+@app.route('/mpesa/callback/<int:order_id>', methods=['POST'])
+def mpesa_callback(order_id):
+    try:
+        callback_data = request.get_json()
+        print("M-Pesa Callback Received: ", callback_data)
+
+        stk_callback = callback_data.get('Body', {}).get('stkCallback', {})
+        result_code = stk_callback.get('ResultCode')
+        result_desc = stk_callback.get('ResultDesc')
+        merchant_request_id = stk_callback.get('MerchantRequestID')
+        checkout_request_id = stk_callback.get('CheckoutRequestID')
+
+        # Format current timestamp as fallback
+        from datetime import datetime
+        transaction_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if result_code == 0:  # Success
+            callback_metadata = stk_callback.get('CallbackMetadata', {}).get('Item', [])
+            amount = next((item.get('Value') for item in callback_metadata if item.get('Name') == 'Amount'), None)
+            mpesa_receipt_number = next((item.get('Value') for item in callback_metadata if item.get('Name') == 'MpesaReceiptNumber'), None)
+            transaction_date = next((item.get('Value') for item in callback_metadata if item.get('Name') == 'TransactionDate'), None)
+            phone_number = next((item.get('Value') for item in callback_metadata if item.get('Name') == 'PhoneNumber'), None)
+
+            # Format transaction date and time
+            if transaction_date:
+                transaction_datetime = datetime.strptime(str(transaction_date), "%Y%m%d%H%M%S").strftime("%Y-%m-%d %H:%M:%S")
+
+            # Insert successful payment into the database
+            insert_payment_query = '''
+            INSERT INTO PaymentsMpesa (merchant_request_id, checkout_request_id, amount, phone_number, transaction_datetime, order_id, transaction_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s);
+            '''
+
+            conn = connect()
+            cursor = conn.cursor()
+            cursor.execute(insert_payment_query, (
+                merchant_request_id,
+                checkout_request_id,
+                amount,
+                phone_number,
+                transaction_datetime,
+                order_id,
+                mpesa_receipt_number  # Use MpesaReceiptNumber as the transaction_id
+            ))
+            conn.commit()
+
+            print(f"Payment successful!\n"
+                  f"Merchant Request ID: {merchant_request_id}\n"
+                  f"Checkout Request ID: {checkout_request_id}\n"
+                  f"Amount: {amount}\n"
+                  f"Mpesa Receipt Number: {mpesa_receipt_number}\n"
+                  f"Phone Number: {phone_number}\n"
+                  f"Order ID: {order_id}\n"
+                  f"Transaction Date: {transaction_datetime}\n")
+
+        else:
+            # Log the failed payment and save other details with an empty transaction_id
+            insert_failed_payment_query = '''
+            INSERT INTO PaymentsMpesa (merchant_request_id, checkout_request_id, amount, phone_number, transaction_datetime, order_id, transaction_id)
+            VALUES (%s, %s, %s, %s, %s, %s, '');
+            '''
+
+            conn = connect()
+            cursor = conn.cursor()
+            cursor.execute(insert_failed_payment_query, (
+                merchant_request_id,
+                result_desc,
+                0.00,  # Amount is 0.00 for failed transactions
+                '',  # No phone number provided for failed transactions
+                transaction_datetime,
+                order_id
+            ))
+            conn.commit()
+
+            print(f"Payment failed: {result_desc} (ResultCode: {result_code})\n"
+                  f"Merchant Request ID: {merchant_request_id}\n"
+                  f"Checkout Request ID: {checkout_request_id}\n")
+
+        return jsonify({"status": "success", "message": "Callback received"}), 200
+
+    except Exception as e:
+        print(f"Error processing M-Pesa callback: {str(e)}")
+        return jsonify({"status": "failure", "message": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

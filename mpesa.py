@@ -1,5 +1,6 @@
 import requests
 from requests.auth import HTTPBasicAuth
+from flask import Flask, request, jsonify
 # Function to get MPesa access token
 def get_mpesa_access_token():
     auth_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
@@ -18,7 +19,7 @@ def get_mpesa_access_token():
         return access_token
     else:
         raise Exception("Could not get access token from MPesa API")
-def send_mpesa_payment(phone):
+def send_mpesa_payment(phone,order_id,amount):
     try:
         access_token = get_mpesa_access_token()
 
@@ -34,13 +35,13 @@ def send_mpesa_payment(phone):
             "Password": "MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjUwMTEzMTQ0OTUz",  # Replace with your valid password
             "Timestamp": "20250113144953",  # Ensure the timestamp is correctly generated
             "TransactionType": "CustomerPayBillOnline",
-            "Amount": 1,  # Amount to send (1 shilling in this case)
+            "Amount": amount,  # Amount to send (1 shilling in this case)
             "PartyA":phone,  # Replace with the sender's phone number in international format
             "PartyB": 174379,  # Replace with your business shortcode
             "PhoneNumber": 254757316903,  # Phone number to send the money to
-            "CallBackURL": "https://your-callback-url.com",
-            "AccountReference": "CompanyXLTD",  # Reference for the payment
-            "TransactionDesc": "Payment of SSD"  # Description of the payment
+            "CallBackURL": f"https://pensive-forest-24613.pktriot.net/mpesa/callback/{order_id}",
+            "AccountReference": "Intelligent management system ",  # Reference for the payment
+            "TransactionDesc": "payment for the purchases "  # Description of the payment
         }
 
         # Send the request to the MPesa API
@@ -59,3 +60,4 @@ def send_mpesa_payment(phone):
         print(phone)
         print(f"Error during payment processing: {e}")
         return {"status": "failure", "message": str(e)}
+    

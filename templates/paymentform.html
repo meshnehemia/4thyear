@@ -1,4 +1,4 @@
-<form action="" method="POST" id="pform">
+<form action="" method="POST" id="pform" class="searching">
     <div class="container-fluid">
         <div class="row px-xl-5">
             <div class="col-lg-8">
@@ -135,7 +135,7 @@
     
                 if (response.ok) {
                     const result = await response.json();
-                    alert('Order placed successfully!');
+                    alert(response.message);
                     window.location.href = '/transact';
                 } else {
                     alert('Error placing the order.');

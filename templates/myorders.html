@@ -169,21 +169,50 @@
 
     <!-- Navbar -->
     {% include 'navbar.html' %}
-
     <div class="container my-5">
         <h1 class="text-center mb-4">Orders</h1>
-
         {% if orders %}
             {% for order_id, order in orders.items() %}
                 <div class="order-card">
                     <div class="order-card-header" onclick="toggleOrderItems('order{{ order_id }}-items')">
                         <strong>Order #{{ order_id }}</strong>
-                        {% if order.status == 'completed' %}
-                            <a href="" class="btn btn-pick-order">Pick the Order</a>
+                        {% if order.status == 'completed' and order.payment_status != 'Not paid' %}
+                                {% if order.delivery_type == 'door delivery' and order.delivery_status == 'DELIVERED' %}
+                                    <span class="btn-pick-order bg-success">Delivered at {{ order.date_updated }}</span>
+                                    <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
+                                {% elif order.delivery_type == 'Not available' or order.delivery_status == 'Not available' %}
+                                    <span class="btn-pick-order bg-info">Delivery information not available</span>
+                                {% elif order.delivery_type == 'door delivery' and order.delivery_status == 'NOT DELIVERED' %}
+                                    <span class="btn-pick-order bg-info">Processing for shipment</span>
+                                    <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
+                                {% elif order.delivery_type == 'door delivery' and order.delivery_status == 'PICKED' %}
+                                    <span class="btn-pick-order bg-info">Wait for the call or email</span>
+                                    <span class="btn btn-pick-order bg-danger" onclick="updatePackageStatus('{{ order.package_id }}', 'DELIVERED')"> Mark as delivered </span>
+                                {% elif order.delivery_type != 'door delivery' and order.delivery_status != 'DELIVERED' %}
+                                    <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
+                                    <span class="btn btn-pick-order bg-danger" onclick="updatePackageStatus('{{ order.package_id }}', 'DELIVERED')">Mark as delivered</span>
+                                {% elif order.delivery_type != 'door delivery' and order.delivery_status == 'DELIVERED' %}
+                                    <span class="btn-pick-order bg-success">Delivered at {{ order.date_updated }}</span>
+                                    <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
+                                {% else %}
+                                    <span class="btn-pick-order bg-info">Trusted agent is being assigned</span>
+                                    <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
+                                {% endif %}
+                    
+                        {% elif order.status == 'completed' %}
+                        <span class="btn-pick-order bg-info">Pay to take</span>
+                        <span class="btn-pick-order bg-success">{{ order.delivery_type }}</span>
                         {% else %}
-                            <span class="order-status">{{ order.status }}</span>
+                            <span class="btn btn-pick-order">{{ order.status }}</span>
                         {% endif %}
-                        
+                        {% if order.payment_status == 'Not paid' %}
+                            <a href="#" class="btn btn-pick-order bg-danger" data-order-id="{{ order_id }}" onclick="payForOrder(event, {{ order_id }})">
+                                Pay for the order
+                            </a>
+                        {% else %}
+                            <span class="order-status bg-primary">{{ order.payment_status }}</span>
+                        {% endif %}
+
                         <span class="text-muted">Date Placed: {{ order.date_placed }}</span>
                     </div>
                     <div id="order{{ order_id }}-items" class="order-items order-card-body">
@@ -208,7 +237,6 @@
                                         <td>{{ item['number_of_items'] }}</td>
                                         <td>{{ item['cost'] }}</td>
                                         {% set total_cost = total_cost + (item['cost'] * item['number_of_items']) %}
-
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -223,13 +251,101 @@
             <p>No orders available.</p>
         {% endif %}
     </div>
-
     <!-- Footer -->
     {% include 'footer.html' %}
-
     <!-- Back to Top -->
     <a href="#" class="btn btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
-
     {% include 'scriptsfooter.html' %}
+
+    <script>
+        // Function to simulate payment and show "Loading" message
+        function payForOrder(event, orderId) {
+            event.preventDefault();  // Prevent the default link action
+    
+            const button = event.target;  // Get the button that was clicked
+            button.innerHTML = 'Loading...';  // Change button text to "Loading..."
+            button.disabled = true;  // Disable the button to prevent multiple clicks
+    
+            // Simulate a delay to represent the payment process
+            setTimeout(function() {
+                fetch('/process_payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'  // Ensure you pass CSRF token for security
+                    },
+                    body: JSON.stringify({ order_id: orderId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        button.innerHTML = 'Waiting verification...';  // Change the button text
+                        button.classList.remove('bg-danger');  // Remove danger class
+                        button.classList.add('bg-success');  // Add success class
+                        checkTransactionStatus(orderId, button);
+                    } else {
+                        alert('Payment failed. Please try again.');
+                        button.innerHTML = 'Pay for the order';  // Revert button text
+                        button.disabled = false;  // Re-enable the button
+                    }
+                });
+                
+            }, 2000);  // Simulate 2 seconds delay
+        }
+        // Function to check the transaction status every 3 seconds for 2 minutes
+    function checkTransactionStatus(orderId, button) {
+        const intervalTime = 3000;  // Check every 3 seconds
+        const timeoutDuration = 60000;  // 2 minutes timeout
+
+        const intervalId = setInterval(function() {
+            fetch(`/check-transaction-status/${orderId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                    if (data.success && data.message) {
+                        button.innerHTML = `Payment successful! Transaction ID: ${data.message}`;
+                        button.disabled = true;
+                        button.classList.remove('bg-danger');  // Remove red background
+                        button.classList.add('bg-success');  // Add green background
+                    } else if (data.success) {
+                        button.innerHTML = `Error: ${data.error}!`;  // Show error message
+                        button.classList.remove('bg-success');  // Remove green background
+                        button.classList.add('bg-danger');  // Add red background
+                        clearInterval(intervalId);  // Stop checking
+                    } else {
+                        return;
+                }
+            })
+            .catch(error => console.error('Error checking payment status:', error));
+        }, intervalTime);
+
+        // Stop checking after 2 minutes
+        setTimeout(function() {
+            clearInterval(intervalId);
+            if (button.innerHTML === 'Waiting verification...') {  // Check if the payment is still pending
+                button.innerHTML = 'Payment failed. Try again.';  // Update button text
+                button.classList.remove('bg-success');  // Remove success class
+                button.classList.add('bg-danger');  // Add danger class
+                button.disabled = false;  // Re-enable the button
+            }
+        }, timeoutDuration);
+    }
+    function updatePackageStatus(packageId, status) {
+                fetch(`/mark-status/${status}/${packageId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                      
+                        // Add other statuses as needed
+                        window.location.href ="/myorders"
+                    })
+                    .catch(error => console.error('Error updating package status:', error));
+                }
+    </script>
 </body>
 </html>
