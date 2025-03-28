@@ -96,7 +96,7 @@
         <a href="/ordersmanagement">Orders</a>
         <a href="/productlists">Manage Products</a>
         <a href="/wmanagement">Manage Workers</a>
-        <a href="#recognition">Face Recognition</a>
+        <!-- <a href="#recognition">Face Recognition</a> -->
         <a href="/newuser">Register Users</a>
     </div>
 
@@ -118,6 +118,9 @@
                         <form class="form">
                             <label for="available_{{ product.product_id }}">Available</label>
                             <input type="number" id="available_{{ product.product_id }}" data-product-id="{{ product.product_id }}" value="">
+                            {% if product.number_of_items < 10 %}
+                                <p class=" btn bg-danger"> please add items</p>
+                            {% endif %}
                             <p id="timer_{{ product.product_id }}" style="color: green;"></p>
                         </form>
                         <h6>Price: ksh {{ product.price }}</h6>

@@ -116,10 +116,6 @@ def init_derivery_routes(app):
     # Function to mark a package as delivered
     @app.route('/mark-status/<string:status>/<int:package_id>', methods=['POST'])
     def mark_status(status, package_id):
-        user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({"error": "User not logged in"}), 401
-
         try:
             conn = connect()
             cursor = conn.cursor()

@@ -178,7 +178,7 @@
         <a href="#" onclick="showSection('requests'); fetchRequests()">Requests Sent <span class="tp" id="rnumber">0</span></a>
         <a href="#" onclick="showSection('accepted'); fetchAcceptedDeliveries()">Accepted Deliveries<span class="tp" id="anumber">0</span></a>
         <a href="#" onclick="showSection('picked'); fetchPickedDeliveries()">Picked Packages<span class="tp" id="pnumber">0</span></a>
-        <a href="#" onclick="showSection('delivered'); fetchDelivered()">Delivered Packages<span class="tp" id="dnumber">0</span></a>
+        <a href="#" onclick="showSection('delivered'); fetchDelivered()">Delivered Packages</a>
         <a href="#" onclick="showSection('allOrders'); fetchDeliveries()">All Orders<span class="tp" id="tnumber">0</span></a>
         <a href="#" onclick="showSection('analytics');">Analytics</a>
     </nav>
@@ -331,8 +331,8 @@
                 document.getElementById('totalAccepted').textContent = totalAccepted;
                 document.getElementById('totalPicked').textContent = totalPicked;
                 document.getElementById('rnumber').textContent = totalRequestsSent;
-                document.getElementById('dnumber').textContent = totalDeliveries;
-                document.getElementById('pnumber').textContent = totalDeliveries;
+                // document.getElementById('dnumber').textContent = totalDeliveries;
+                document.getElementById('pnumber').textContent = totalPicked;
                 document.getElementById('anumber').textContent = totalAccepted;
                 fetchDeliveries();
                 const requestChart = new Chart(document.getElementById('requestChart'), {
@@ -386,8 +386,8 @@
             document.getElementById('totalAccepted').textContent = totalAccepted;
             document.getElementById('totalPicked').textContent = totalPicked;
             document.getElementById('rnumber').textContent = totalRequestsSent;
-            document.getElementById('dnumber').textContent = totalDeliveries;
-            document.getElementById('pnumber').textContent = totalDeliveries;
+            // document.getElementById('dnumber').textContent = totalDeliveries;
+            document.getElementById('pnumber').textContent = totalPicked;
             document.getElementById('anumber').textContent = totalAccepted;
             
             const requestChart = new Chart(document.getElementById('requestChart'), {

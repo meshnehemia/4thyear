@@ -203,12 +203,12 @@ def feature():
 
 @app.route('/')
 def home():
-    session['user_id'] = 6
-    session['username'] = "user_name"
-    session['full_name'] = "full_name" 
-    session['email'] = "meshnehemia7@gmail.com"
-    session['phone_number'] = 254757316903
-    session['transact'] = "not verified";
+    # session['user_id'] = 6
+    # session['username'] = "user_name"
+    # session['full_name'] = "full_name" 
+    # session['email'] = "meshnehemia7@gmail.com"
+    # session['phone_number'] = 254757316903
+    # session['transact'] = "not verified";
     return render_template('index.html')
 
 def calculate_total_cost(carts):
@@ -483,7 +483,13 @@ def send_otp():
 def logout():
     session.pop('username', None)
     session.pop('user_id', None)
-    return redirect(url_for('home'))
+    session.pop('user_id', None)
+    session.pop('username', None)
+    session.pop('full_name', None)
+    session.pop('email', None)
+    session.pop('phone_number', None)
+    session.pop('transact', None)
+    return redirect(url_for('login'))
  # Render the registration form
 @app.route('/register', methods=['POST'])
 def register():
@@ -648,6 +654,8 @@ def reducecart():
 
 @app.route('/acart', methods=['POST'])
 def addcart():
+        if 'user_id' not in session:
+            return jsonify({"message": "Please login first"}), 401
         data = request.get_json() 
         conn = connect()
         cursor = conn.cursor()
@@ -769,12 +777,15 @@ def productlist():
     SELECT p.product_id, p.product_name, p.description, p.price,
            f.new_price AS featured_price, 
            d.new_price AS advertised_price, 
-           c.category_id, dc.category_name
+           c.category_id, dc.category_name, 
+           a.number_of_items
     FROM products p
     LEFT JOIN featured f ON p.product_id = f.product_id
     LEFT JOIN discounts d ON p.product_id = d.product_id
     LEFT JOIN categories c ON p.product_id = c.product_id
     LEFT JOIN d_categories dc ON c.category_id = dc.category_id
+    LEFT JOIN availableitemnumber a ON p.product_id = a.product_id
+    ORDER BY a.number_of_items ASC
     """
 
     cursor.execute(query)
@@ -1121,40 +1132,44 @@ def demote_staff():
 def get_orders():
     try:
         conn = connect()
-        cursor = conn.cursor()
-
-        # Query to get all orders
-        cursor.execute('''
+        cursor = conn.cursor(dictionary=True)
+        query = '''
             SELECT 
-                o.order_id, o.client_id, o.date_placed, o.status,o.assigned_worker
-            FROM orders o
-        ''')
-
+                o.order_id, 
+                o.client_id,
+                o.assigned_worker,
+                o.status,
+                o.date_placed,
+                d.derivery_id, 
+                d.station, 
+                d.address, 
+                d.house_details, 
+                d.delivery_type, 
+                s.name_of_staff AS completed_by, 
+                d.updated_at AS completion_date,
+                d.total_amount, 
+                d.derivery_status,
+                d.payment_method,
+                d.updated_at,
+                p.transaction_id,
+                p.phone_number,
+                p.transaction_datetime,
+                u.full_name AS request_set_by
+            FROM 
+                orders o
+            LEFT JOIN derivery_details d ON o.order_id = d.order_id
+            LEFT JOIN staff s ON o.assigned_worker = s.staff_id
+            LEFT JOIN PaymentsMpesa p ON o.order_id = p.order_id
+            LEFT JOIN users u ON d.user_id = u.user_id
+            ORDER BY d.derivery_id DESC;
+        '''
+        # Query to get all orders
+        cursor.execute(query)
         orders = cursor.fetchall()
-
-        response = {
-            'orders': []
-        }
-
-        for order in orders:
-            order_id, client_id, date_placed, status , worker= order
-            response['orders'].append({
-                'order_id': order_id,
-                'client_id': get_user_email(client_id),
-                'date_placed': date_placed.strftime('%Y-%m-%d %H:%M:%S'),
-                'status': status,
-                'status_class': get_status_class(status),
-                'assigned_worker': get_staffname(worker) # Assuming no workers assigned yet
-            })
-
-        cursor.close()
-        conn.close()
-
-        return jsonify(response), 200
+        return jsonify(orders), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 # Helper function to map order status to CSS classes
 def get_status_class(status):
     if status == 'Pending':
@@ -1777,7 +1792,8 @@ def myorders():
         JOIN ordersales os ON o.order_id = os.order_id
         JOIN products p ON os.product_id = p.product_id
         LEFT JOIN derivery_details d ON o.order_id = d.order_id
-        WHERE o.client_id = %s
+        WHERE o.client_id = %s 
+        ORDER BY o.order_id DESC 
         """
         # Fetch the orders
         cursor.execute(query, (user_id,))
@@ -1848,9 +1864,10 @@ def process_payment():
 
         # Check if the order exists and is unpaid
         check_order_query = """
-        SELECT o.order_id, o.status, p.transaction_id 
+        SELECT o.order_id, o.status, p.transaction_id, d.total_amount
         FROM orders o 
         LEFT JOIN paymentsmpesa p ON o.order_id = p.order_id 
+        LEFT JOIN derivery_details d ON o.order_id = d.order_id
         WHERE o.order_id = %s AND o.client_id = %s
         """
         cursor.execute(check_order_query, (order_id, user_id))
@@ -1860,11 +1877,10 @@ def process_payment():
             return jsonify({"error": "Order not found"}), 404
 
         delete_payment(order_id)
-        send_mpesa_payment(session['phone_number'],order_id,1)
+        # print(float(order['total_amount']))
+        send_mpesa_payment(session['phone_number'],order_id,float(order['total_amount']))
         payment_success = True  # Assume the payment was successful for now
-
         if payment_success:
-          
             return jsonify({"success": True, "message": "Payment successful", "transaction_id": cursor.lastrowid}), 200
         else:
             return jsonify({"error": "Payment failed. Please try again"}), 500
@@ -2324,7 +2340,48 @@ def reduce(product_id):
         if conn.is_connected():
             cursor.close()
             conn.close()
-            
+
+@app.route('/get_all_orders', methods=['GET'])
+def get_all_orders():
+    conn = connect()
+    query = """
+    SELECT 
+        o.order_id, 
+        o.client_id,
+        d.derivery_id, 
+        d.station, 
+        d.address, 
+        d.house_details, 
+        d.delivery_type, 
+        s.name_of_staff AS completed_by, 
+        d.updated_at AS completion_date,
+        d.total_amount, 
+        d.derivery_status,
+        d.payment_method,
+        d.updated_at,
+        p.transaction_id,
+        p.phone_number,
+        p.transaction_datetime,
+        u.full_name AS request_set_by
+    FROM 
+        orders o
+    LEFT JOIN derivery_details d ON o.order_id = d.order_id
+    LEFT JOIN staff s ON o.assigned_worker = s.staff_id
+    LEFT JOIN PaymentsMpesa p ON o.order_id = p.order_id
+    LEFT JOIN users u ON d.user_id = u.user_id
+    WHERE o.status = 'completed' AND d.derivery_status != 'DELIVERED'
+    ORDER BY d.derivery_id DESC;
+    """
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        results = cursor.fetchall()
+        return jsonify(results)
+    except Exception as err:
+        print(f"Error: {err}")
+        return jsonify({"error": "An error occurred while fetching data"}), 500
+    
+    
 @app.route('/derivery', methods=['POST'])
 def save_or_update_delivery():
     data = request.json  # Receiving JSON data from the front end

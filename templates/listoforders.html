@@ -121,7 +121,7 @@
         <a href="/ordersmanagement">Orders</a>
         <a href="/productlists">Manage Products</a>
         <a href="/wmanagement">Manage Workers</a>
-        <a href="#profits">Face Recognitions</a>
+        <!-- <a href="#profits">Face Recognitions</a> -->
         <a href="/newuser">Register Users</a>
     </div>
 
@@ -147,17 +147,53 @@
                 </tbody>
             </table>
         </div>
-
+        <!-- Completed Orders Section -->
+        <div id="completed-orders" class="mb-5">
+            <h4>Waiting for derivery</h4>
+            <table class="order-list-table table table-striped" id="derivery">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>package id</th>
+                        <th>Completed By</th>
+                        <th>Completion Date</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>derivery method</th>
+                        <th>request set by</th>
+                        <th>request set at</th>
+                        <th>approve request</th>
+                        <th>cancel request </th>
+                        <th>derivery status</th>
+                        <th>total amount</th>
+                        <th>mark as paid</th>
+                    </tr>
+                </thead>
+                <tbody id="derivery_items">
+                    <!-- Completed orders will be dynamically populated here -->
+                </tbody>
+            </table>
+        </div>
         <!-- Completed Orders Section -->
         <div id="completed-orders" class="mb-5">
             <h4>Completed Orders</h4>
             <table class="order-list-table table table-striped">
-                <thead>
+                <thead>    
                     <tr>
                         <th>Order ID</th>
-                        <th>client email</th>
+                        <th>package id</th>
                         <th>Completed By</th>
                         <th>Completion Date</th>
+                        <th>derivered by</th>
+                        <th>station</th>
+                        <th>address</th>
+                        <th>house number</th>
+                        <th>derivery method</th>
+                        <th>derivered date</th>
+                        <th>total amount</th>
+                        <th>derivery status</th>
+                        <th>transaction</th>
                     </tr>
                 </thead>
                 <tbody id="completed-orders-body">
@@ -202,17 +238,28 @@
                     const completedOrdersBody = document.getElementById('completed-orders-body');
                     orderListBody.innerHTML = '';
                     completedOrdersBody.innerHTML = '';
-
-                    data.orders.forEach(order => {
-                        if (order.status === 'Completed' || order.status ==='completed') {
+                    console.log(data); // Log the data to check its structure
+                    data.forEach(order => {
+                        if (order.status === 'Completed' || order.status ==='completed' ) {
+                            if(order.derivery_status === 'derivered' || order.derivery_status === 'Derivered' || order.derivery_status === 'DELIVERED'){
                             completedOrdersBody.innerHTML += `
                                 <tr>
                                     <td>${order.order_id}</td>
-                                    <td>${order.client_id}</td>
-                                    <td>${order.assigned_worker || '-'}</td>
-                                    <td>${order.date_placed}</td>
+                                    <td>${order.derivery_id}</td>
+                                    <td>${order.completed_by ? order.completed_by : 'N/A'}</td>
+                                    <td>${order.completion_date ? order.completion_date : 'N/A'}</td>
+                                    <td>${order.request_set_by ? order.request_set_by : 'N/A'}</td>
+                                    <td>${order.station ? order.station : 'N/A'}</td>
+                                    <td>${order.address ? order.station : 'N/A'}</td>
+                                    <td>${order.house_details ? order.house_details : 'N/A'}</td>
+                                    <td>${order.delivery_type}</td>
+                                    <td>${order.updated_at}</td>
+                                    <td>${order.total_amount}</td>
+                                    <td>${order.derivery_status}</td>
+                                    <td><button class="btn btn-info" onclick="markAsPaid(${order.order_id})">${ order.transaction_id ? order.transaction_id + "-" + order.phone_number + "-" + order.transaction_datetime : 'N/A'} </button></td>
+
                                 </tr>
-                            `;
+                            `;}
                         } else {
                             orderListBody.innerHTML += `
                                 <tr>
@@ -272,6 +319,97 @@
         window.onload = function () {
             fetchOrders();
         };
+
+        document.addEventListener('DOMContentLoaded', function() {
+    // Function to fetch and display the orders
+    function fetchAndDisplayOrders() {
+        // Fetch the data from the Flask API
+        fetch('/get_all_orders')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('derivery_items');
+
+                // Clear the current content
+                tableBody.innerHTML = '';
+
+                // Iterate through each order and append rows to the table
+                data.forEach(order => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${order.order_id}</td>
+                        <td>${order.derivery_id}</td>
+                        <td>${order.completed_by ? order.completed_by : 'N/A'}</td>
+                        <td>${order.completion_date ? order.completion_date : 'N/A'}</td>
+                        <td>${order.station ? order.station : 'N/A'}</td>
+                        <td>${order.address ? order.address : 'N/A' }</td>
+                        <td>${order.house_details ? order.house_details : 'N/A'}</td>
+                        <td>${order.delivery_type}</td>
+                        <td>${order.derivery_status == 'NOT DELIVERED' ? "--" : order.request_set_by }</td>
+                        <td>${order.updated_at}</td>
+                        <td>
+                            ${ order.derivery_status === 'REQUEST SENT' ? 
+                                `<button class="btn btn-danger" id="approve-btn-${order.derivery_id}" onclick="approveRequest(${order.derivery_id}, 'ACCEPTED')">Approve</button>` :
+                                `<button class="btn btn-success"  >${order.derivery_status == 'NOT DELIVERED' ? "WAITING" : "APPROVED"}</button>` 
+                            }
+                        </td>
+                        <td>
+                            ${ order.derivery_status !== 'NOT DELIVERED' ? 
+                                `<button class="btn btn-warning" id="cancel-btn-${order.derivery_id}" onclick="cancelRequest(${order.derivery_id}, 'NOT DELIVERED')">CANCEL</button>` :
+                                `<button class="btn btn-primary" >in queue</button>` 
+                            }
+                        </td>
+                            
+
+                        <td><button class=" btn btn-success">${order.derivery_status}</button></td>
+                        <td>${order.total_amount}</td>
+                        <td><button class="btn btn-info" onclick="markAsPaid(${order.order_id})">${ order.transaction_id ? order.transaction_id + "-" + order.phone_number + "-" + order.transaction_datetime : 'N/A'} </button></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error fetching orders:', error));
+    }
+
+    // Fetch the data and populate the table on page load
+    fetchAndDisplayOrders();
+});
+
+// Function to handle marking an order as paid
+function markAsPaid(orderId) {
+    console.log(`Mark as paid for Order ID: ${orderId}`);
+    // Here you can send a POST request to mark the order as paid
+}
+function approveRequest(packageId, status) {
+    const approveBtn = document.getElementById(`approve-btn-${packageId}`);
+    approveBtn.innerHTML = 'Loading...';
+    approveBtn.classList.remove('btn-success');
+    approveBtn.classList.add('btn-secondary');
+    approveBtn.disabled = true;
+                fetch(`/mark-status/${status}/${packageId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        approveBtn.innerHTML = 'approved';
+                    })
+                    .catch(error => console.error('Error updating package status:', error));
+                }
+function cancelRequest(packageId, status) {
+    const approveBtn = document.getElementById(`cancel-btn-${packageId}`);
+    approveBtn.innerHTML = 'Loading...';
+    approveBtn.classList.remove('btn-success');
+    approveBtn.classList.add('btn-secondary');
+    approveBtn.disabled = true;
+                fetch(`/mark-status/${status}/${packageId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        approveBtn.innerHTML = 'in queue';
+                    })
+                    .catch(error => console.error('Error updating package status:', error));
+                }
+
+
     </script>
 </body>
 
